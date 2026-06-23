@@ -27,3 +27,14 @@ Proyecto en desarrollo.
 - Integración mediante Zabbix External Check
 - Procesamiento mediante Master Item + Dependent Items
 - Script Python ejecutado desde Zabbix Server
+
+## Personalizaciones
+
+### Zabbix Server
+
+La imagen oficial de Zabbix Server fue extendida para incluir:
+
+- Python 3
+- Requests
+
+Utilizado para ejecutar External Checks personalizados.
