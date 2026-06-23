@@ -22,6 +22,7 @@
 - [ ] Windows Hosts
 - [ ] Switches
 - [ ] OLTs
+- [ ] UniFi Controller API
 
 ## Fase 4 - Operación
 - [ ] Actualización de imágenes
