@@ -18,3 +18,12 @@ Stack de monitoreo basado en:
 ## Estado
 
 Proyecto en desarrollo.
+
+## Funcionalidades implementadas
+
+### Monitoreo UniFi
+
+- Obtención de dispositivos mediante API de UniFi Network
+- Integración mediante Zabbix External Check
+- Procesamiento mediante Master Item + Dependent Items
+- Script Python ejecutado desde Zabbix Server
