@@ -92,7 +92,7 @@ Definidas en `.env`:
 ```env
 UNIFI_URL=https://192.0.2.40
 UNIFI_USER=admin
-UNIFI_PASS=site-c\$2026
+UNIFI_PASS=CHANGE_ME
 ```
 
 Configuradas en `docker-compose.yml`:
