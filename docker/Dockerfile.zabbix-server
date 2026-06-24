@@ -1,0 +1,10 @@
+FROM zabbix/zabbix-server-pgsql:alpine-7.0.6
+
+USER root
+
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-requests
+
+USER zabbix
