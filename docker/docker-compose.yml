@@ -49,9 +49,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      UNIFI_URL: ${UNIFI_URL}
-      UNIFI_USER: ${UNIFI_USER}
-      UNIFI_PASS: ${UNIFI_PASS}
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,9 +59,9 @@ services:
     networks:
       - backend
       - frontend
- 
+
     volumes:
-      - ../scripts/externalscripts:/usr/lib/zabbix/externalscripts:ro
+      - ../scripts:/usr/lib/zabbix/externalscripts:ro
 
     logging:
       driver: json-file
