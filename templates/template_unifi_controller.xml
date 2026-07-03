@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>7.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>36bff6c29af64692839d077febfc7079</uuid>
+            <name>Templates/Network devices</name>
+        </template_group>
+    </template_groups>
+    <templates>
+        <template>
+            <uuid>676a84428c0f4052bc2f3c403d35303b</uuid>
+            <template>Unifi Controller</template>
+            <name>Unifi Controller</name>
+            <groups>
+                <group>
+                    <name>Templates/Network devices</name>
+                </group>
+            </groups>
+            <items>
+                <item>
+                    <uuid>afb3fa532b004b57bc79ee9e5bf8f701</uuid>
+                    <name>UniFi - Devices JSON</name>
+                    <type>EXTERNAL</type>
+                    <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                    <value_type>TEXT</value_type>
+                    <trends>0</trends>
+                </item>
+            </items>
+            <discovery_rules>
+                <discovery_rule>
+                    <uuid>0076e7f70afd422caf558a7d99e704b4</uuid>
+                    <name>Discover UniFi APs</name>
+                    <type>EXTERNAL</type>
+                    <key>unifi.py[ discovery, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                    <delay>1h</delay>
+                    <item_prototypes>
+                        <item_prototype>
+                            <uuid>c2d96250d5344af0b778b3b46ef0fa10</uuid>
+                            <name>{#NAME} - Clientes</name>
+                            <type>DEPENDENT</type>
+                            <key>unifi.ap.clients[{#MAC}]</key>
+                            <delay>0</delay>
+                            <value_type>TEXT</value_type>
+                            <trends>0</trends>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.data[?(@.mac==&quot;{#MAC}&quot;)].num_sta.first()</parameter>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                            </master_item>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <uuid>8d96e0faffb24769bc2749ccbdf258cf</uuid>
+                                    <expression>last(/Unifi Controller/unifi.ap.clients[{#MAC}])&gt;80</expression>
+                                    <name>Muchos clientes conectados</name>
+                                    <priority>AVERAGE</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>3125627ed8074f2885f208fc1b7269c4</uuid>
+                            <name>{#NAME} - Firmware</name>
+                            <type>DEPENDENT</type>
+                            <key>unifi.ap.firmware[{#MAC}]</key>
+                            <delay>0</delay>
+                            <value_type>TEXT</value_type>
+                            <trends>0</trends>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.data[?(@.mac==&quot;{#MAC}&quot;)].version.first()</parameter>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>a7b82613975b46518c5d0add8bfea393</uuid>
+                            <name>{#NAME} - RX</name>
+                            <type>DEPENDENT</type>
+                            <key>unifi.ap.rx[{#MAC}]</key>
+                            <delay>0</delay>
+                            <value_type>FLOAT</value_type>
+                            <units>bps</units>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.data[?(@.mac==&quot;{#MAC}&quot;)].rx_bytes.first()</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>MULTIPLIER</type>
+                                    <parameters>
+                                        <parameter>8</parameter>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>0e5e03ad30254762976c3a3269f73547</uuid>
+                            <name>{#NAME} - Estado</name>
+                            <type>DEPENDENT</type>
+                            <key>unifi.ap.state[{#MAC}]</key>
+                            <delay>0</delay>
+                            <value_type>FLOAT</value_type>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.data[?(@.mac==&quot;{#MAC}&quot;)].state.first()</parameter>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                            </master_item>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <uuid>9414eceac798403ca45d12a220937746</uuid>
+                                    <expression>last(/Unifi Controller/unifi.ap.state[{#MAC}])=0</expression>
+                                    <name>AP Offline</name>
+                                    <priority>HIGH</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>9bf8300ad54f49eebc6b5661fe4ce730</uuid>
+                            <name>{#NAME} - TX</name>
+                            <type>DEPENDENT</type>
+                            <key>unifi.ap.tx[{#MAC}]</key>
+                            <delay>0</delay>
+                            <value_type>FLOAT</value_type>
+                            <units>bps</units>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.data[?(@.mac==&quot;{#MAC}&quot;)].tx_bytes.first()</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>MULTIPLIER</type>
+                                    <parameters>
+                                        <parameter>8</parameter>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                            </master_item>
+                        </item_prototype>
+                    </item_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+        </template>
+    </templates>
+</zabbix_export>

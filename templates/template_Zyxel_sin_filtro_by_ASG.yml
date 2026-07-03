@@ -1,0 +1,109 @@
+zabbix_export:
+  version: "7.4"
+  template_groups:
+    - uuid: "8e5efb40-6e8f-45ce-9a63-4cb4e40e778c"
+      name: "Templates/Network Devices"
+
+  templates:
+    - uuid: "2c8c3d2c-f15a-4cc4-a831-b872738882c0"
+      template: "Template Optimized Network Device by SNMP"
+      name: "Template Optimized Network Device by SNMP"
+      description: "Template optimizado para Mikrotik / Zyxel / Ubiquiti — evita interfaces basura y limita discovery"
+      groups:
+        - name: "Templates/Network Devices"
+
+      discovery_rules:
+        - uuid: "c9f84368-d473-4777-898d-dc06589e8a2f"
+          name: "Optimized Interface Discovery"
+          type: "SNMP_AGENT"
+          key: >
+            discovery[
+              {#IFOPERSTATUS},1.3.6.1.2.1.2.2.1.8,
+              {#IFADMINSTATUS},1.3.6.1.2.1.2.2.1.7,
+              {#IFALIAS},1.3.6.1.2.1.31.1.1.1.18,
+              {#IFDESCR},1.3.6.1.2.1.2.2.1.2,
+              {#IFTYPE},1.3.6.1.2.1.2.2.1.3
+            ]
+          delay: "1h"
+
+          filter:
+            evaltype: "AND"
+            conditions:
+
+              - uuid: "a0a56f71-46fa-4f8a-b78a-c4be8bd72e8f"
+                macro: "{#IFTYPE}"
+                value: "^(6|7|117|161|53)$"
+                operator: "REGEXP"
+                formulaid: "A"
+
+              - uuid: "019e96f4-3a4b-46db-b3dc-73fcd0c08c71"
+                macro: "{#IFTYPE}"
+                value: "^(135|136)$"
+                operator: "NOT_REGEXP"
+                formulaid: "B"
+
+              - uuid: "a3825c7a-7202-45c3-9af6-87052cb3a2bf"
+                macro: "{#IFALIAS}"
+                value: "^$"
+                operator: "NOT_REGEXP"
+                formulaid: "C"
+
+              - uuid: "3f54d3c2-9310-4a08-90e3-5a6303930f3e"
+                macro: "{#IFDESCR}"
+                value: "^(lo|teql|sit|tunl|gre|br|bridge|wifi|airview|vlan|pppoe|eoip|pptp|l2tp|ovpn).*"
+                operator: "NOT_REGEXP"
+                formulaid: "D"
+
+              - uuid: "5ad13cc8-1cdd-401f-a2b0-3648260d9db0"
+                macro: "{#IFDESCR}"
+                value: ".{200,}"
+                operator: "NOT_REGEXP"
+                formulaid: "E"
+
+          item_prototypes:
+
+            - uuid: "5db7c14f-eaa1-4eb8-b947-b50da9cded0e"
+              name: "Interface {#IFDESCR}: In traffic"
+              key: "if.in[{#SNMPINDEX}]"
+              type: "SNMP_AGENT"
+              value_type: "FLOAT"
+              units: "bps"
+              snmp_oid: "1.3.6.1.2.1.2.2.1.10.{#SNMPINDEX}"
+              preprocessing:
+                - type: "CHANGE_PER_SECOND"
+
+            - uuid: "c9ad5187-e622-4b0e-bf04-c1b067c77f37"
+              name: "Interface {#IFDESCR}: Out traffic"
+              key: "if.out[{#SNMPINDEX}]"
+              type: "SNMP_AGENT"
+              value_type: "FLOAT"
+              units: "bps"
+              snmp_oid: "1.3.6.1.2.1.2.2.1.16.{#SNMPINDEX}"
+              preprocessing:
+                - type: "CHANGE_PER_SECOND"
+
+            - uuid: "18562559-04df-43a0-b6ba-6db079d66eba"
+              name: "Interface {#IFDESCR}: Admin status"
+              key: "if.adminstatus[{#SNMPINDEX}]"
+              type: "SNMP_AGENT"
+              snmp_oid: "1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}"
+
+            - uuid: "e8cce9fb-0b07-4db5-a278-9b36e52fb952"
+              name: "Interface {#IFDESCR}: Oper status"
+              key: "if.operstatus[{#SNMPINDEX}]"
+              type: "SNMP_AGENT"
+              snmp_oid: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}"
+      template_triggers:
+        - uuid: "8a31d3bc-b7e8-4f5b-acdc-887bfd0dcb74"
+          name: "Too many interfaces discovered (>5000)"
+          priority: "HIGH"
+          description: "Indica exceso de interfaces descubiertas. Configurar acción para borrar o deshabilitar host."
+          expression: >
+            last(/Template Optimized Network Device by SNMP/optim_interfaces.count) > 5000
+
+      items:
+        - uuid: "f27fe187-2976-4c83-a3d3-6d525f5d953b"
+          name: "Interface discovery count"
+          key: "optim_interfaces.count"
+          type: "INTERNAL"
+

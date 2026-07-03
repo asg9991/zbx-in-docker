@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>7.4</version>
+    <template_groups>
+        <template_group>
+            <uuid>6b0148ef6e4e4d02985a30b406bf15b6</uuid>
+            <name>Templates/UPS</name>
+        </template_group>
+    </template_groups>
+    <templates>
+        <template>
+            <uuid>8e6a7d97a54d4dc9ab177624b644c667</uuid>
+            <template>UPS OLHV SNMP</template>
+            <name>UPS OLHV SNMP</name>
+            <description>Monitoreo UPS OLHV via SNMP (Vendor 43943)</description>
+            <groups>
+                <group>
+                    <name>Templates/UPS</name>
+                </group>
+            </groups>
+            <items>
+                <item>
+                    <uuid>62c1d4f9d31d4b56a676612d762e2c8f</uuid>
+                    <name>Nivel de batería</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.3.4.0]</snmp_oid>
+                    <key>ups.battery.level</key>
+                    <units>%</units>
+                    <triggers>
+                        <trigger>
+                            <uuid>f3bfd592ca2b41d09dca29e9b3427e8b</uuid>
+                            <expression>last(/UPS OLHV SNMP/ups.battery.level)&lt;30</expression>
+                            <name>Batería baja (&lt;30%)</name>
+                            <priority>WARNING</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <uuid>50f03bbb7a0145a0aa2968d200ce55b3</uuid>
+                    <name>Autonomía restante</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.3.5.0]</snmp_oid>
+                    <key>ups.battery.runtime</key>
+                    <units>s</units>
+                    <triggers>
+                        <trigger>
+                            <uuid>f8236bf6c71848bfba2ab8d8258e2f37</uuid>
+                            <expression>last(/UPS OLHV SNMP/ups.battery.runtime)&lt;300</expression>
+                            <name>Autonomía crítica (&lt;5 min)</name>
+                            <priority>HIGH</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <uuid>0fd18c87e375496d861dda6fb6834e8b</uuid>
+                    <name>Temperatura batería</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.5.7.1.7.0]</snmp_oid>
+                    <key>ups.battery.temp</key>
+                    <units>°C</units>
+                </item>
+                <item>
+                    <uuid>73a73138b1cb44debff4ac72cf09d232</uuid>
+                    <name>Voltaje de entrada</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.4.5.1.3.0]</snmp_oid>
+                    <key>ups.input.voltage</key>
+                    <units>V</units>
+                    <preprocessing>
+                        <step>
+                            <type>MULTIPLIER</type>
+                            <parameters>
+                                <parameter>0.1</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                    <triggers>
+                        <trigger>
+                            <uuid>629dfcf5dc0c481987ee1c9959f3d5b0</uuid>
+                            <expression>last(/UPS OLHV SNMP/ups.input.voltage)&lt;180 or last(/UPS OLHV SNMP/ups.input.voltage)&gt;240</expression>
+                            <name>Voltaje de entrada fuera de rango</name>
+                            <priority>WARNING</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <uuid>fe452d11ce144117a131b12dde661f8e</uuid>
+                    <name>Frecuencia de salida</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.5.2.0]</snmp_oid>
+                    <key>ups.output.freq</key>
+                    <units>Hz</units>
+                    <preprocessing>
+                        <step>
+                            <type>MULTIPLIER</type>
+                            <parameters>
+                                <parameter>0.1</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </item>
+                <item>
+                    <uuid>1be738f193574adf9c955f6fc3d3d1f6</uuid>
+                    <name>Carga UPS</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.5.7.1.3.0]</snmp_oid>
+                    <key>ups.output.load</key>
+                    <units>%</units>
+                    <triggers>
+                        <trigger>
+                            <uuid>7029a88a1b1a4ed1a4d27d00599c72f2</uuid>
+                            <expression>last(/UPS OLHV SNMP/ups.output.load)&gt;80</expression>
+                            <name>Carga alta UPS (&gt;80%)</name>
+                            <priority>WARNING</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <uuid>2954df8d75874d89b108ec3e49d4cc4a</uuid>
+                    <name>Voltaje de salida</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.5.7.1.2.0]</snmp_oid>
+                    <key>ups.output.voltage</key>
+                    <units>V</units>
+                    <preprocessing>
+                        <step>
+                            <type>MULTIPLIER</type>
+                            <parameters>
+                                <parameter>0.1</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </item>
+                <item>
+                    <uuid>bf838cb138654365bc03458fad66914e</uuid>
+                    <name>UPS en batería</name>
+                    <type>SNMP_AGENT</type>
+                    <snmp_oid>get[1.3.6.1.4.1.43943.1.1.11.4.0]</snmp_oid>
+                    <key>ups.status.onbattery</key>
+                    <triggers>
+                        <trigger>
+                            <uuid>c07e437825004845a6efdcd2ffd92162</uuid>
+                            <expression>last(/UPS OLHV SNMP/ups.status.onbattery)=1</expression>
+                            <name>UPS funcionando en batería</name>
+                            <priority>HIGH</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+            </items>
+        </template>
+    </templates>
+</zabbix_export>

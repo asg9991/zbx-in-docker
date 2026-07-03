@@ -1,0 +1,95 @@
+zabbix_export:
+  version: "7.4"
+
+  template_groups:
+    - uuid: f3e0fd9c-1111-4bb3-aaaa-000000000001
+      name: "Templates/Network Devices"
+
+  templates:
+    - uuid: f3e0fd9c-2222-4bb3-aaaa-000000000002
+      template: "Template Optimized Network Device by SNMP"
+      name: "Template Optimized Network Device by SNMP"
+      description: "Template optimizado — evita interfaces basura y discovery masivo."
+
+      groups:
+          name: "Templates/Network Devices"
+
+      discovery_rules:
+        - uuid: f3e0fd9c-3333-4bb3-aaaa-000000000003
+          name: "Optimized Interface Discovery"
+          key: "if.discovery"
+          type: SNMP_AGENT
+          delay: 1h
+
+          filter:
+            conditions:
+              - macro: "{#IFTYPE}"
+                operator: REGEXP
+                value: "^(6|7|117|161|53)$"
+                formulaid: A
+
+              - macro: "{#IFTYPE}"
+                operator: NOT_REGEXP
+                value: "^(135|136)$"
+                formulaid: B
+
+              - macro: "{#IFALIAS}"
+                operator: NOT_REGEXP
+                value: "^$"
+                formulaid: C
+
+              - macro: "{#IFDESCR}"
+                operator: NOT_REGEXP
+                value: "^(lo|teql|sit|tunl|gre|br|bridge|wifi|airview|vlan|pppoe|eoip|pptp|l2tp|ovpn).*"
+                formulaid: D
+
+              - macro: "{#IFDESCR}"
+                operator: NOT_REGEXP
+                value: ".{200,}"
+                formulaid: E
+
+          item_prototypes:
+            - uuid: f3e0fd9c-4444-4bb3-aaaa-000000000004
+              name: "Interface {#IFDESCR}: In traffic"
+              key: "if.in[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              value_type: FLOAT
+              units: bps
+              snmp_oid: "1.3.6.1.2.1.2.2.1.10.{#SNMPINDEX}"
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+
+            - uuid: f3e0fd9c-5555-4bb3-aaaa-000000000005
+              name: "Interface {#IFDESCR}: Out traffic"
+              key: "if.out[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              value_type: FLOAT
+              units: bps
+              snmp_oid: "1.3.6.1.2.1.2.2.1.16.{#SNMPINDEX}"
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+
+            - uuid: f3e0fd9c-6666-4bb3-aaaa-000000000006
+              name: "Interface {#IFDESCR}: Admin status"
+              key: "if.adminstatus[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}"
+
+            - uuid: f3e0fd9c-7777-4bb3-aaaa-000000000007
+              name: "Interface {#IFDESCR}: Oper status"
+              key: "if.operstatus[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}"
+
+      items:
+        - uuid: f3e0fd9c-8888-4bb3-aaaa-000000000008
+          name: "Interface discovery count"
+          key: "optim_interfaces.count"
+          type: INTERNAL
+
+  triggers:
+    - uuid: f3e0fd9c-9999-4bb3-aaaa-000000000009
+      name: "Too many interfaces discovered (>5000)"
+      expression: "last(/Template Optimized Network Device by SNMP/optim_interfaces.count) > 5000"
+      priority: HIGH
+      description: "Indica exceso de interfaces descubiertas."

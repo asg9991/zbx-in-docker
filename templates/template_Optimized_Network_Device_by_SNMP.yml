@@ -1,0 +1,108 @@
+zabbix_export:
+  version: "7.4"
+  template_groups:
+    - name: Templates/Network Devices
+  templates:
+    - template: "Template Optimized Network Device by SNMP"
+      name: "Template Optimized Network Device by SNMP"
+      description: "Template optimizado para Mikrotik / Zyxel / Ubiquiti — evita interfaces basura y limita discovery"
+      groups:
+        - name: Templates/Network Devices
+
+      # ---------------------------
+      #  LLD: INTERFACE DISCOVERY
+      # ---------------------------
+      discovery_rules:
+        - name: "Optimized Interface Discovery"
+          key: >
+            discovery[
+              {#IFOPERSTATUS},1.3.6.1.2.1.2.2.1.8,
+              {#IFADMINSTATUS},1.3.6.1.2.1.2.2.1.7,
+              {#IFALIAS},1.3.6.1.2.1.31.1.1.1.18,
+              {#IFDESCR},1.3.6.1.2.1.2.2.1.2,
+              {#IFTYPE},1.3.6.1.2.1.2.2.1.3
+            ]
+          type: SNMP_AGENT
+          delay: 1h
+
+          # ---------- FILTERS ----------
+          filter:
+            conditions:
+
+              # Solo interfaces relevantes (Opción B)
+              - macro: "{#IFTYPE}"
+                value: "^(6|7|117|161|53)$"
+                operator: REGEXP
+                formulaid: A
+
+              # Excluir VLAN basura
+              - macro: "{#IFTYPE}"
+                value: "^(135|136)$"
+                operator: NOT_REGEXP
+                formulaid: B
+
+              # Solo incluir VLAN que tengan alias (evita miles de VLAN)
+              - macro: "{#IFALIAS}"
+                value: "^$"
+                operator: NOT_REGEXP
+                formulaid: C
+
+              # Excluir pseudo-interfaces
+              - macro: "{#IFDESCR}"
+                value: "^(lo|teql|sit|tunl|gre|br|bridge|wifi|airview|vlan|pppoe|eoip|pptp|l2tp|ovpn).*"
+                operator: NOT_REGEXP
+                formulaid: D
+
+              # Evitar strings corruptos gigantes
+              - macro: "{#IFDESCR}"
+                value: ".{200,}"
+                operator: NOT_REGEXP
+                formulaid: E
+
+          # ---------- ITEM PROTOTYPES ----------
+          item_prototypes:
+
+            - name: "Interface {#IFDESCR}: In traffic"
+              key: "if.in[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              value_type: FLOAT
+              units: bps
+              snmp_oid: "1.3.6.1.2.1.2.2.1.10.{#SNMPINDEX}"
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+
+            - name: "Interface {#IFDESCR}: Out traffic"
+              key: "if.out[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              value_type: FLOAT
+              units: bps
+              snmp_oid: "1.3.6.1.2.1.2.2.1.16.{#SNMPINDEX}"
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+
+            - name: "Interface {#IFDESCR}: Admin status"
+              key: "if.adminstatus[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}"
+
+            - name: "Interface {#IFDESCR}: Oper status"
+              key: "if.operstatus[{#SNMPINDEX}]"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}"
+
+      # ---------------------------
+      # TRIGGERS GLOBALS DEL TEMPLATE
+      # ---------------------------
+      triggers:
+        - name: "Too many interfaces discovered (>5000)"
+          expression: >
+            last(/Template Optimized Network Device by SNMP/optim_interfaces.count) > 5000
+          priority: HIGH
+          description: "Indica exceso de interfaces descubiertas. Configurar acción para borrar o deshabilitar host."
+
+      items:
+        # Item auxiliar que cuenta interfaces descubiertas
+        - name: "Interface discovery count"
+          key: "optim_interfaces.count"
+          type: INTERNAL
+
