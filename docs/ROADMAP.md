@@ -95,7 +95,7 @@ Próximas métricas:
 
 Asistente inteligente sobre la plataforma. Ver [docs/noc-agent/arquitectura.md](noc-agent/arquitectura.md).
 
-- [ ] Fase 0: Compose parametrizado para lab local (`DATA_DIR`) y stack levantado
+- [x] Fase 0: Compose parametrizado para lab local (`DATA_DIR`) y stack levantado
 - [ ] Fase 1: Datos simulados con triggers que generan problemas reales
 - [ ] Fase 2: Hub MCP (zabbix-mcp-server filtrado read-only) validado con endpoint externo
 - [ ] Fase 3: Orquestador (router determinista + clasificador + cliente MCP)
