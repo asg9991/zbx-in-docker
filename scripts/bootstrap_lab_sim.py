@@ -36,16 +36,20 @@ _request_id = 0
 
 
 def api(token: str | None, method: str, params: dict):
-    """Ejecuta una llamada JSON-RPC y devuelve el result o aborta con error."""
+    """Ejecuta una llamada JSON-RPC y devuelve el result o aborta con error.
+
+    Zabbix 7.x ya no acepta el campo "auth" en el body: el token viaja
+    en el header Authorization: Bearer.
+    """
     global _request_id
     _request_id += 1
     payload = {"jsonrpc": "2.0", "method": method, "params": params,
                "id": _request_id}
+    headers = {"Content-Type": "application/json-rpc"}
     if token:
-        payload["auth"] = token
+        headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(
-        URL, data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json-rpc"})
+        URL, data=json.dumps(payload).encode(), headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
         body = json.load(response)
     if "error" in body:

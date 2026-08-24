@@ -71,6 +71,10 @@ class Metric:
         if self.jitter and value == self.baseline:
             value += random.uniform(-self.jitter, self.jitter)
 
+        # Sin sentido fisico para porcentajes.
+        if value < 0:
+            value = 0
+
         return int(round(value)) if self.integer else round(value, 2)
 
 

@@ -108,9 +108,10 @@ export ZABBIX_PASSWORD='tu-password'
 python3 scripts/bootstrap_lab_sim.py
 ```
 
-**2. Levantar el simulador:**
+**2. Levantar el simulador (el compose vive en `docker/`):**
 
 ```bash
+cd docker
 docker compose --profile lab up -d lab-simulator
 docker logs -f lab-simulator   # cada envío queda logueado
 ```
