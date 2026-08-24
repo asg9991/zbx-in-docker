@@ -13,7 +13,7 @@ credenciales y contraseñas antes del primer arranque.
 
 ```bash
 git clone <url-del-repo>
-cd docker-zbx-grafana
+cd noc-agent
 ```
 
 ## Paso 2 — Crear el archivo de entorno (credenciales)
