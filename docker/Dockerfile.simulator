@@ -1,0 +1,12 @@
+FROM alpine:3.20
+
+# zabbix_sender vive en zabbix-utils (no hay paquete separado en Alpine);
+# python3 + py3-yaml para el motor de escenarios.
+RUN apk add --no-cache \
+        python3 \
+        py3-yaml \
+        zabbix-utils
+
+COPY docker/simulator/sender.py /usr/local/bin/lab-sender.py
+
+ENTRYPOINT ["python3", "/usr/local/bin/lab-sender.py"]

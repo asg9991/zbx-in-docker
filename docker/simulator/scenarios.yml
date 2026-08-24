@@ -1,0 +1,70 @@
+# Escenarios del laboratorio NOC Agent.
+#
+# Cada metrica es una funcion pura del reloj:
+#   baseline  valor sano entre incidentes
+#   jitter    variacion aleatoria +/- sobre el baseline
+#   incidents ventana ciclica (cada N segundos, durante M segundos, valor X)
+#   ramp      crecimiento lineal desde el arranque hasta clavarse en target
+#
+# Los umbrales de disparo viven en templates/template_lab_simulado.yaml.
+
+interval: 10
+
+devices:
+
+  # Saturacion periodica de CPU (trigger HIGH cada ~15 min).
+  olt-sim-01:
+    metrics:
+      - key: lab.cpu.util
+        baseline: 12
+        jitter: 3
+        incidents:
+          - every: 900      # cada 15 min
+            duration: 240   # 4 min en alta
+            value: 96
+      - key: lab.mem.util
+        baseline: 45
+        jitter: 5
+
+  # Congestion: perdida de paquetes y latencia altas a la vez
+  # (triggers HIGH y WARNING sincronizados cada ~10 min).
+  router-sim-02:
+    metrics:
+      - key: lab.net.packet.loss.pct
+        baseline: 0
+        jitter: 0.5
+        incidents:
+          - every: 600      # cada 10 min
+            duration: 180   # 3 min congestionado
+            value: 35
+      - key: lab.net.latency.ms
+        baseline: 18
+        jitter: 5
+        incidents:
+          - every: 600
+            duration: 180
+            value: 250
+
+  # Problema PERSISTENTE: el disco crece desde el arranque y queda lleno.
+  # Sirve para probar consultas sobre incidentes viejos que no se resuelven.
+  server-sim-03:
+    metrics:
+      - key: lab.disk.used.pct
+        baseline: 60
+        ramp:
+          target: 93
+          minutes: 15       # cruza el umbral (>85) a los ~11 min
+      - key: lab.mem.util
+        baseline: 88
+        jitter: 2           # cerca del umbral (>90): memoria inestable
+
+  # Flap de disponibilidad: link caido 30s cada 8 min (trigger HIGH).
+  ap-sim-04:
+    metrics:
+      - key: lab.link.status
+        baseline: 1
+        integer: true
+        incidents:
+          - every: 480
+            duration: 30
+            value: 0

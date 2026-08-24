@@ -132,6 +132,40 @@ services:
         max-file: "5"
 
 
+  # Solo lab: docker compose --profile lab up -d
+  # Alimenta los hosts simulados (trapper) segun docker/simulator/scenarios.yml.
+  lab-simulator:
+    profiles:
+      - "lab"
+
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.simulator
+      network: host
+
+    image: lab/lab-simulator:latest
+    container_name: lab-simulator
+    restart: unless-stopped
+
+    depends_on:
+      - zabbix-server
+
+    environment:
+      ZABBIX_SERVER: zabbix-server
+
+    volumes:
+      - ./simulator/scenarios.yml:/etc/lab-sim/scenarios.yml:ro
+
+    networks:
+      - backend
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
 networks:
 
   # Lab local: subredes explicitas para evitar colisiones con otros

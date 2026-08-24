@@ -93,6 +93,39 @@ curl -s http://127.0.0.1/api_jsonrpc.php \
 Frontend: `http://localhost` — usuario por defecto `Admin` / `zabbix`.
 **Cambiar esa contraseña en el primer login.**
 
+## Datos simulados (solo lab, Fase 1 NOC Agent)
+
+Un simulador alimenta 4 hosts falsos con métricas trapper y ventanas de
+incidente cíclicas, para tener **problemas reales que consultar** desde el
+agente. Nunca arranca en producción: vive detrás del profile `lab` de Compose.
+
+**1. Crear template, host group y hosts (idempotente):**
+
+```bash
+export ZABBIX_URL=http://127.0.0.1/api_jsonrpc.php
+export ZABBIX_USER=Admin
+export ZABBIX_PASSWORD='tu-password'
+python3 scripts/bootstrap_lab_sim.py
+```
+
+**2. Levantar el simulador:**
+
+```bash
+docker compose --profile lab up -d lab-simulator
+docker logs -f lab-simulator   # cada envío queda logueado
+```
+
+**3. Qué esperar:** a los ~3-4 min aparecen los primeros problemas en
+*Monitoring → Problems*: CPU alta (`olt-sim-01`), pérdida de paquetes + latencia
+(`router-sim-02`) y flaps de link (`ap-sim-04`). A los ~11 min el disco de
+`server-sim-03` cruza el umbral y queda lleno (problema persistente, no se
+resuelve solo).
+
+Los escenarios (frecuencia, duración y valores de cada incidente) se editan en
+`docker/simulator/scenarios.yml` — tomar efecto requiere recrear el contenedor:
+`docker compose --profile lab up -d --force-recreate lab-simulator`.
+Los umbrales de disparo viven en `templates/template_lab_simulado.yaml`.
+
 ## Redes internas
 
 El stack define sus propias redes autocontenidas (no dependen de redes
