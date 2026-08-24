@@ -93,6 +93,27 @@ curl -s http://127.0.0.1/api_jsonrpc.php \
 Frontend: `http://localhost` — usuario por defecto `Admin` / `zabbix`.
 **Cambiar esa contraseña en el primer login.**
 
+## Paso 5 — Agente del propio server
+
+Toda instalación limpia de Zabbix trae el host `Zabbix server` con una
+interfaz agent apuntando a `127.0.0.1:10050`. Desde el contenedor ese IP es
+el propio server, donde no hay agente: la disponibilidad queda en rojo y el
+log spamea `connection refused`.
+
+El stack incluye el servicio `zabbix-agent` (`zabbix-agent2`, imagen alpine,
+misma versión pinneada que el resto) en la red `backend`. Solo falta repuntar la
+interfaz del host al DNS `zabbix-agent` (una vez, idempotente):
+
+```bash
+export ZABBIX_URL=http://127.0.0.1/api_jsonrpc.php
+export ZABBIX_USER=Admin
+export ZABBIX_PASSWORD='tu-password'
+python3 scripts/bootstrap_lab_agent.py
+```
+
+En ~1 minuto el ícono de disponibilidad agent del host `Zabbix server`
+debería quedar en verde y el log deja de quejarse.
+
 ## Datos simulados (solo lab, Fase 1 NOC Agent)
 
 Un simulador alimenta 4 hosts falsos con métricas trapper y ventanas de
@@ -167,8 +188,9 @@ subredes del lab del secuestro de rutas).
 
 ## Actualizar la versión de Zabbix
 
-1. Bump de tags en dos lugares:
-   - `docker/docker-compose.yml` → imagen de `zabbix-web` (`alpine-7.4.X`)
+1. Bump de tags en tres lugares:
+   - `docker/docker-compose.yml` → imágenes de `zabbix-web` y `zabbix-agent`
+     (`alpine-7.4.X`)
    - `docker/Dockerfile.zabbix-server` → `FROM` base (`alpine-7.4.X`)
 2. `docker compose up -d --build`
 3. Al arrancar, Zabbix Server **migra el esquema de la base automáticamente**

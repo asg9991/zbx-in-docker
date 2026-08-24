@@ -75,6 +75,36 @@ services:
         max-file: "5"
 
 
+  # Agente del propio lab: atiende los passive checks del host
+  # "Zabbix server" (su interfaz apunta al DNS zabbix-agent:10050).
+  zabbix-agent:
+    # Nota: agent2 no tiene repo "-alpine" en Docker Hub; el tag alpine
+    # vive en zabbix/zabbix-agent2.
+    image: zabbix/zabbix-agent2:alpine-7.4.13
+    container_name: zabbix-agent
+    restart: unless-stopped
+
+    environment:
+      ZBX_HOSTNAME: "Zabbix server"
+      # El entrypoint usa ZBX_SERVER_HOST tanto para checks activos como
+      # para el origen permitido de los pasivos. No agregar
+      # ZBX_PASSIVESERVERS con el mismo valor: duplica la entrada y agent2
+      # rechaza la config ("address specified more than once").
+      ZBX_SERVER_HOST: zabbix-server
+
+    depends_on:
+      - zabbix-server
+
+    networks:
+      - backend
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4.13
     container_name: zabbix-web
