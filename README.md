@@ -4,10 +4,9 @@ Stack de monitoreo basado en tecnologías Open Source para infraestructura de re
 
 ## Componentes
 
-- Zabbix Server 7 LTS
+- Zabbix Server 7.4 LTS
 - Zabbix Web
 - PostgreSQL 15
-- Grafana
 - Nginx Reverse Proxy
 
 ---
@@ -15,32 +14,27 @@ Stack de monitoreo basado en tecnologías Open Source para infraestructura de re
 # Arquitectura
 
 ```
-                 +----------------+
-                 |    Grafana     |
-                 +--------+-------+
-                          |
-                          |
-+---------+        +-------v--------+
-| Nginx   +------->+  Zabbix Web    |
-+---------+        +-------+--------+
-                          |
-                          |
-                  +-------v--------+
-                  | Zabbix Server  |
-                  +-------+--------+
-                          |
-              +-----------+-----------+
-              |                       |
-              |                       |
-      SNMP / ICMP              External Checks
-              |                       |
-              |                 UniFi Network API
-              |                       |
-        Equipos de red         UniFi Controller
-                          |
-                  +-------v--------+
-                  | PostgreSQL     |
-                  +----------------+
+                +------------------+
+                |      Nginx       |
+                +--------+---------+
+                         |
+                +--------v---------+
+                |    Zabbix Web    |
+                +--------+---------+
+                         |
+                +--------v---------+         +---------------+
+                |  Zabbix Server   +<=======>+   PostgreSQL  |
+                +----+--------+----+         +---------------+
+                     |        |
+          SNMP / ICMP         External Checks (Python)
+                |                    |
+         Equipos de red    +---------v----------+
+                           | UniFi Network API  |
+                           +---------+----------+
+                                     |
+                           +---------v----------+
+                           |  UniFi Controller  |
+                           +--------------------+
 ```
 
 ---
@@ -53,7 +47,6 @@ Stack de monitoreo basado en tecnologías Open Source para infraestructura de re
 - Monitoreo ICMP
 - Descubrimiento automático
 - Triggers
-- Dashboards mediante Grafana
 
 ## Integración UniFi Network
 
@@ -130,7 +123,6 @@ Actualmente:
 - PostgreSQL
 - Zabbix Server
 - Zabbix Web
-- Grafana
 - Nginx Reverse Proxy
 - Integración con UniFi Network API
 - Descubrimiento automático de Access Points

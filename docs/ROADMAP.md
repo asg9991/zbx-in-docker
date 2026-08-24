@@ -6,7 +6,6 @@
 - [x] PostgreSQL
 - [x] Zabbix Server
 - [x] Zabbix Web
-- [x] Grafana
 - [x] Nginx Reverse Proxy
 - [x] Agent2 local
 - [x] Imagen personalizada de Zabbix Server
@@ -20,7 +19,7 @@
 
 - [x] README del proyecto
 - [x] Arquitectura general
-- [ ] Guía de instalación
+- [x] Guía de instalación
 - [ ] Backup
 - [ ] Restore
 - [ ] Troubleshooting general
