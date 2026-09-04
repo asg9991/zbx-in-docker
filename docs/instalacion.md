@@ -13,7 +13,7 @@ credenciales y contraseñas antes del primer arranque.
 
 ```bash
 git clone <url-del-repo>
-cd noc-agent
+cd zbx-in-docker
 ```
 
 ## Paso 2 — Crear el archivo de entorno (credenciales)
@@ -67,7 +67,7 @@ Los datos viven bajo `DATA_DIR`. Por defecto es `/opt/monitoring/data`
 proyecto o del home:
 
 ```bash
-DATA_DIR=/home/usuario/ruta/del/lab/data
+DATA_DIR=/home/usuario/zbx-in-docker/data
 ```
 
 ## Paso 3 — Levantar el stack

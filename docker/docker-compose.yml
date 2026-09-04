@@ -140,7 +140,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: monitoring-nginx
+    container_name: zbx-nginx
     restart: unless-stopped
 
     depends_on:
@@ -206,7 +206,7 @@ networks:
       config:
         - subnet: 172.28.90.0/24
 
-  # Gestionada por este compose (antes era externa: monitoring-net),
+  # Gestionada por este compose (antes externa monitoring-net, hoy red frontend),
   # asi el stack es autocontenido y funciona en cualquier host.
   frontend:
     ipam:

@@ -168,8 +168,8 @@ ejecutarse.
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 0 | Adaptar compose a lab local (`DATA_DIR` parametrizado) y levantar stack Zabbix | pendiente |
-| 1 | Datos simulados: hosts falsos con triggers que flappean (problemas reales para consultar) | pendiente |
+| 0 | Adaptar compose a lab local (`DATA_DIR` parametrizado) y levantar stack Zabbix | hecha |
+| 1 | Datos simulados: hosts falsos con triggers que flappean (problemas reales para consultar) | hecha |
 | 2 | Hub MCP: zabbix-mcp-server filtrado read-only; validación con endpoint externo (Claude Code/OpenCode) | pendiente |
 | 3 | Orquestador: router L0/L1 + librería cliente compartida; CLI primero | pendiente |
 | 4 | Adapter Discord: alertas→hilos, botones, ephemeral, ledger de routing | pendiente |
