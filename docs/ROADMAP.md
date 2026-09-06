@@ -20,8 +20,8 @@
 - [x] README del proyecto
 - [x] Arquitectura general
 - [x] Guía de instalación
-- [ ] Backup
-- [ ] Restore
+- [x] Backup (2026-09-06)
+- [x] Restore (2026-09-06)
 - [ ] Troubleshooting general
 
 ### Integraciones
