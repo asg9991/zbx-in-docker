@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>7.0</version>
+    <version>7.4</version>
     <template_groups>
         <template_group>
             <uuid>36bff6c29af64692839d077febfc7079</uuid>
@@ -56,7 +56,6 @@ ZHONE-SHELF-MONITOR-MIB.mib</description>
                     <key>shelf.batt.a.status</key>
                     <delay>5m</delay>
                     <value_type>TEXT</value_type>
-                    <trends>0</trends>
                     <tags>
                         <tag>
                             <tag>chassis</tag>
@@ -72,7 +71,6 @@ ZHONE-SHELF-MONITOR-MIB.mib</description>
                     <key>shelf.batt.b.status</key>
                     <delay>5m</delay>
                     <value_type>TEXT</value_type>
-                    <trends>0</trends>
                     <tags>
                         <tag>
                             <tag>chassis</tag>
@@ -194,7 +192,6 @@ Valor actual: {ITEM.LASTVALUE1}</description>
                     <key>shelf.ret.volt</key>
                     <delay>5m</delay>
                     <value_type>TEXT</value_type>
-                    <trends>0</trends>
                     <tags>
                         <tag>
                             <tag>chassis</tag>
@@ -249,35 +246,29 @@ Valor actual: {ITEM.LASTVALUE1}</description>
                             <condition>
                                 <macro>{#IFSHELFFANLOC}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFFANLOC}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFFANLOWTH}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFFANLOWTH}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFFANSPEED}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFFANSPEED}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -294,7 +285,6 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <key>shelf.fan.loc.[{#SNMPINDEX}]</key>
                             <delay>1d</delay>
                             <value_type>TEXT</value_type>
-                            <trends>0</trends>
                             <tags>
                                 <tag>
                                     <tag>fan</tag>
@@ -385,35 +375,29 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <condition>
                                 <macro>{#IFCARDCPUIDLE}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDCPUIDLE}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDCPUUSAGE}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDCPUUSAGE}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -473,7 +457,7 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                                 </trigger_prototype>
                                 <trigger_prototype>
                                     <uuid>798edf7873ce459da26cb3d17f226b77</uuid>
-                                    <expression>count(/OLT ZHONE Template/zhone.card.cpuusage.[{#SNMPINDEX}],1h,&quot;gt&quot;,15)&gt;95</expression>
+                                    <expression>count(/OLT ZHONE Template/zhone.card.cpuusage.[{#SNMPINDEX}],1h,"gt",15)&gt;95</expression>
                                     <name>Card CPUUsage::[{#IFCARDID}:{#SNMPINDEX}] || Supero 95% quince veces en 1 hora</name>
                                     <priority>HIGH</priority>
                                     <tags>
@@ -568,35 +552,29 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <condition>
                                 <macro>{#IFCARDADMSTATUS}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDADMSTATUS}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDOPERSTATUS}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDOPERSTATUS}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -638,7 +616,6 @@ Esto puede indicar:
                             <snmp_oid>1.3.6.1.4.1.5504.3.3.1.1.1.1.{#SNMPINDEX}</snmp_oid>
                             <key>zhone.card.identification.[{#SNMPINDEX}]</key>
                             <value_type>CHAR</value_type>
-                            <trends>0</trends>
                             <valuemap>
                                 <name>Zhone::cardIdentification</name>
                             </valuemap>
@@ -772,57 +749,47 @@ Esto puede indicar:
                             <condition>
                                 <macro>{#IFCARDAVAILMEM}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDAVAILMEM}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDMEMSTATUS}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDMEMSTATUS}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDPEAKMEM}</macro>
                                 <value>.*</value>
-                                <formulaid>G</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDPEAKMEM}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>H</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDTOTALMEM}</macro>
                                 <value>.*</value>
-                                <formulaid>I</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDTOTALMEM}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>J</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -1060,35 +1027,29 @@ Esto puede indicar:
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDID}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDOPERSTATUS}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDOPERSTATUS}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDUPTIME}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFCARDUPTIME}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -1163,46 +1124,38 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <condition>
                                 <macro>{#IFSHELFTEMP}</macro>
                                 <value>.*</value>
-                                <formulaid>A</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMP}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>B</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPHIGH}</macro>
                                 <value>.*</value>
-                                <formulaid>C</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPHIGH}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>D</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPLOC}</macro>
                                 <value>.*</value>
-                                <formulaid>E</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPLOC}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>F</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPLOW}</macro>
                                 <value>.*</value>
-                                <formulaid>G</formulaid>
                             </condition>
                             <condition>
                                 <macro>{#IFSHELFTEMPLOW}</macro>
                                 <value>CHANGE_IF_NEEDED</value>
                                 <operator>NOT_MATCHES_REGEX</operator>
-                                <formulaid>H</formulaid>
                             </condition>
                         </conditions>
                     </filter>
@@ -1231,7 +1184,6 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <delay>86400</delay>
                             <history>0</history>
                             <value_type>TEXT</value_type>
-                            <trends>0</trends>
                         </item_prototype>
                         <item_prototype>
                             <uuid>1ca2a40071464f789bcbe59602080e93</uuid>
@@ -1242,7 +1194,6 @@ https://mibs.observium.org/mib/ZHONE-SHELF-MONITOR-MIB/#zhoneCardStatus</descrip
                             <delay>86400;wd1</delay>
                             <history>0</history>
                             <value_type>TEXT</value_type>
-                            <trends>0</trends>
                         </item_prototype>
                         <item_prototype>
                             <uuid>6f18eab850e74d649c1180b8dc4275a0</uuid>

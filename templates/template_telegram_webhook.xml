@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>7.0</version>
+    <version>7.4</version>
     <media_types>
         <media_type>
             <name>Telegram</name>
@@ -24,7 +24,7 @@
                 </parameter>
                 <parameter>
                     <name>api_token</name>
-                    <value>7768182743:AAHdDjmoy0Y3FnycMkG8pLeCZ-w_NeDsN4U</value>
+                    <value>{$TELEGRAM.BOT.TOKEN}</value>
                 </parameter>
                 <parameter>
                     <name>event_nseverity</name>
@@ -68,28 +68,22 @@
 		Zabbix.log(level, '[' + this.serviceName + '] ' + msg);
 	}
 }
-
 const CWebhook = function(value) {
 	try {
 		params = JSON.parse(value);
-
 		if (['0', '1', '2', '3', '4'].indexOf(params.event_source) === -1) {
 			throw 'Incorrect &quot;event_source&quot; parameter given: ' + params.event_source + '.\nMust be 0-4.';
 		}
-
 		if (['0', '3', '4'].indexOf(params.event_source) !== -1 &amp;&amp; ['0', '1'].indexOf(params.event_value) === -1) {
 			throw 'Incorrect &quot;event_value&quot; parameter given: ' + params.event_value + '.\nMust be 0 or 1.';
 		}
-
 		if (['0', '3', '4'].indexOf(params.event_source) !== -1) {
 			if (params.event_source === '1' &amp;&amp; ['0', '1', '2', '3'].indexOf(params.event_value) === -1) {
 				throw 'Incorrect &quot;event_value&quot; parameter given: ' + params.event_value + '.\nMust be 0-3.';
 			}
-
 			if (params.event_source === '0' &amp;&amp; ['0', '1'].indexOf(params.event_update_status) === -1) {
 				throw 'Incorrect &quot;event_update_status&quot; parameter given: ' + params.event_update_status + '.\nMust be 0 or 1.';
 			}
-
 			if (params.event_source === '4') {
 				if (['0', '1', '2', '3', '4', '5'].indexOf(params.event_update_nseverity) !== -1 &amp;&amp; params.event_update_nseverity != params.event_nseverity) {
 					params.event_nseverity = params.event_update_nseverity;
@@ -98,13 +92,11 @@ const CWebhook = function(value) {
 				}
 			}
 		}
-
 		this.runCallback = function(name, params) {
 			if (typeof this[name] === 'function') {
 				return this[name].apply(this, [params]);
 			}
 		}
-
 		this.handleEvent = function(source, event) {
 			const alert = { source: source, event: event };
 			return [
@@ -113,7 +105,6 @@ const CWebhook = function(value) {
 				this.runCallback('onEvent', alert)
 			];
 		}
-
 		this.handleEventless = function(source) {
 			const alert = { source: source, event: null };
 			return [
@@ -121,19 +112,16 @@ const CWebhook = function(value) {
 				this.runCallback('onEvent', alert)
 			];
 		}
-
 		this.run = function() {
 			var results = [];
 			if (typeof this.httpProxy === 'string' &amp;&amp; this.httpProxy.trim() !== '') {
 				this.request.setProxy(this.httpProxy);
 			}
 			const types = { '0': 'Trigger', '1': 'Discovery', '2': 'Autoreg', '3': 'Internal', '4': 'Service' };
-
 			if (['0', '3', '4'].indexOf(this.params.event_source) !== -1) {
 				var event = (this.params.event_update_status === '1')
 					? 'Update'
 					: ((this.params.event_value === '1') ? 'Problem' : 'Resolve');
-
 				results = this.handleEvent(types[this.params.event_source], event);
 			}
 			else if (typeof types[this.params.event_source] !== 'undefined') {
@@ -142,7 +130,6 @@ const CWebhook = function(value) {
 			else {
 				throw 'Unexpected &quot;event_source&quot;: ' + this.params.event_source;
 			}
-
 			for (idx in results) {
 				if (typeof results[idx] !== 'undefined') {
 					return JSON.stringify(results[idx]);
@@ -156,9 +143,7 @@ const CWebhook = function(value) {
 		throw 'Webhook processing failed: ' + error;
 	}
 }
-
 const CParamValidator = {
-
 	isType: function(value, type) {
 		if (type === 'array') {
 			return Array.isArray(value);
@@ -169,46 +154,35 @@ const CParamValidator = {
 		if (type === 'float') {
 			return CParamValidator.isFloat(value);
 		}
-
 		return (typeof value === type);
 	},
-
 	isInteger: function(value) {
 		if (!CParamValidator.ifMatch(value, /^-?\d+$/)) {
 			return false;
 		}
-
 		return !isNaN(parseInt(value));
 	},
-
 	isFloat: function(value) {
 		if (!CParamValidator.ifMatch(value, /^-?\d+\.\d+$/)) {
 			return false;
 		}
-
 		return !isNaN(parseFloat(value));
 	},
-
 	isDefined: function(value) {
 		return !CParamValidator.isType(value, 'undefined');
 	},
-
 	isEmpty: function(value) {
 		if (!CParamValidator.isType(value, 'string')) {
 			throw 'Value &quot;' + value + '&quot; must be a string to be checked for emptiness.';
 		}
-
 		return (value.trim() === '');
 	},
-
 	isMacroSet: function(value, macro) {
 		if (CParamValidator.isDefined(macro)) {
 			return !(CParamValidator.ifMatch(value, '^\{' + macro + '\}$'))
 		}
-
 		return !(CParamValidator.ifMatch(value, '^\{[$#]{0,1}[A-Z_\.]+[\:]{0,1}[&quot;]{0,1}.*[&quot;]{0,1}\}$') || value === '*UNKNOWN*')
 	},
-
 	withinRange: function(value, min, max) {
 		if (!CParamValidator.isType(value, 'number')) {
 			throw 'Value &quot;' + value + '&quot; must be a number to be checked for range.';
@@ -217,30 +191,23 @@ const CParamValidator = {
 			|| value &gt; ((CParamValidator.isDefined(max)) ? max : value)) {
 			return false;
 		}
-
 		return true;
 	},
-
 	inArray: function(value, array) {
 		if (!CParamValidator.isType(array, 'array')) {
 			throw 'The array must be an array to check the value for existing in it.';
 		}
-
 		return (array.indexOf((typeof value === 'string') ? value.toLowerCase() : value) !== -1);
 	},
-
 	ifMatch: function(value, regex) {
 		return (new RegExp(regex)).test(value);
 	},
-
 	match: function(value, regex) {
 		if (!CParamValidator.isType(value, 'string')) {
 			throw 'Value &quot;' + value + '&quot; must be a string to be matched with the regular expression.';
 		}
-
 		return value.match(new RegExp(regex));
 	},
-
 	checkURL: function(value) {
 		if (CParamValidator.isEmpty(value)) {
 			throw 'URL value &quot;' + value + '&quot; must be a non-empty string.';
@@ -248,10 +215,8 @@ const CParamValidator = {
 		if (!CParamValidator.ifMatch(value, '^(http|https):\/\/.+')) {
 			throw 'URL value &quot;' + value + '&quot; must contain a schema.';
 		}
-
 		return value.endsWith('/') ? value.slice(0, -1) : value;
 	},
-
 	check: function(key, rule, params) {
 		if (!CParamValidator.isDefined(rule.type)) {
 			throw 'Mandatory attribute &quot;type&quot; has not been defined for parameter &quot;' + key + '&quot;.';
@@ -352,10 +317,8 @@ const CParamValidator = {
 				throw 'Incorrect value for variable &quot;' + key + '&quot;. ' + error_message;
 			}
 		}
-
 		return this;
 	},
-
 	validate: function(rules, params) {
 		if (!CParamValidator.isType(params, 'object') || CParamValidator.isType(params, 'array')) {
 			throw 'Incorrect parameters value. The value must be an object.';
@@ -365,7 +328,6 @@ const CParamValidator = {
 		}
 	}
 }
-
 const CHttpRequest = function(logger) {
 	this.request = new HttpRequest();
 	if (typeof logger !== 'object' || logger === null) {
@@ -374,14 +336,11 @@ const CHttpRequest = function(logger) {
 	else {
 		this.logger = logger;
 	}
-
 	this.clearHeader = function() {
 		this.request.clearHeader();
 	}
-
 	this.addHeaders = function(value) {
 		var headers = [];
-
 		if (typeof value === 'object' &amp;&amp; value !== null) {
 			if (!Array.isArray(value)) {
 				Object.keys(value).forEach(function(key) {
@@ -397,16 +356,13 @@ const CHttpRequest = function(logger) {
 				headers.push(header);
 			});
 		}
-
 		for (var idx in headers) {
 			this.request.addHeader(headers[idx]);
 		}
 	}
-
 	this.setProxy = function(proxy) {
 		this.request.setProxy(proxy);
 	}
-
 	this.plainRequest = function(method, url, data) {
 		var resp = null;
 		method = method.toLowerCase();
@@ -421,10 +377,8 @@ const CHttpRequest = function(logger) {
 			throw 'Unexpected method. Method ' + method + ' is not supported.';
 		}
 		this.logger.log(4, 'Response has been received: ' + resp);
-
 		return resp;
 	}
-
 	this.jsonRequest = function(method, url, data) {
 		this.addHeaders('Content-Type: application/json');
 		var resp = this.plainRequest(method, url, JSON.stringify(data));
@@ -434,19 +388,15 @@ const CHttpRequest = function(logger) {
 		catch (error) {
 			throw 'Failed to parse response: not well-formed JSON was received';
 		}
-
 		return resp;
 	}
-
 	this.getStatus = function() {
 		return this.request.getStatus();
 	}
 }
-
 var serviceLogName = 'Telegram Webhook',
 	Logger = new CLogger(serviceLogName),
 	Telegram = CWebhook;
-
 function escapeMarkup(str, mode) {
 	switch (mode) {
 		case 'markdown':
@@ -459,7 +409,6 @@ function escapeMarkup(str, mode) {
 			return str;
 	}
 }
-
 Telegram.prototype.getMessageID = function (chat_id, message_thread_id) {
 	const tag_key = '__telegram_msg_id_' + chat_id + (message_thread_id ? '_' + message_thread_id : '');
 	if (CParamValidator.isDefined(this.params.event_tags[tag_key])) {
@@ -467,7 +416,6 @@ Telegram.prototype.getMessageID = function (chat_id, message_thread_id) {
 	}
 	return null;
 }
-
 Telegram.prototype.onCheckParams = function () {
 	CParamValidator.validate(
 		{
@@ -477,13 +425,11 @@ Telegram.prototype.onCheckParams = function () {
 		},
 		this.params
 	);
-
 	if (CParamValidator.inArray(this.params.event_source, ['0', '3', '4'])) {
 		CParamValidator.validate({
 			event_tags: {type: 'array', macro: 'EVENT.TAGSJSON', tags: true, default: {}}
 		}, this.params);
 	}
-
 	this.params.url = 'https://api.telegram.org/bot';
 	this.data = {
 		disable_web_page_preview: true,
@@ -508,12 +454,10 @@ Telegram.prototype.onCheckParams = function () {
 	}
 	this.result = {tags: {}};
 };
-
 Telegram.prototype.onEvent = function (alert) {
 	Logger.log(Logger.INFO, 'Source: ' + alert.source + '; Event: ' + alert.event);
 	Logger.log(Logger.INFO, 'URL: ' + this.params.url.replace(this.params.api_token, '&lt;TOKEN&gt;'));
 	var response = this.request.jsonRequest('POST', this.params.url + this.params.api_token + '/sendMessage', this.data);
-
 	if (this.request.getStatus() !== 200 || !CParamValidator.isType(response.ok, 'boolean') || response.ok !== true) {
 		Logger.log(Logger.INFO, 'HTTP code: ' + this.request.getStatus());
 		if (CParamValidator.isType(response.description, 'string')) {
@@ -523,14 +467,11 @@ Telegram.prototype.onEvent = function (alert) {
 			throw 'Unknown error. Check debug log for more information.';
 		}
 	}
-
 	if (CParamValidator.isDefined(response.result.message_id) &amp;&amp; this.getMessageID(this.data['chat_id'], this.data['message_thread_id']) === null) {
 		this.result.tags['__telegram_msg_id_' + this.data['chat_id'] + (this.data['message_thread_id'] ? '_' + this.data['message_thread_id'] : '')] = response.result.message_id;
 	}
-
 	return this.result;
 };
-
 try {
 	var hook = new Telegram(value);
 	hook.request = new CHttpRequest(Logger);
@@ -542,57 +483,37 @@ catch (error) {
 }</script>
             <process_tags>YES</process_tags>
             <description>This media type integrates your Zabbix installation with Telegram using the Zabbix webhook feature.
-
 Telegram configuration:
-
 1. Register a new Telegram bot: send &quot;/newbot&quot; to &quot;@BotFather&quot; and follow the instructions. The token provided by &quot;@BotFather&quot; in the final step will be needed for configuring the Zabbix webhook.
-
 2. Set up personal or group notifications:
-
 2.1 Personal notifications:
-
 2.1.1 Retrieve the chat ID of the user the bot should send messages to. The user should send &quot;/getid&quot; to &quot;@myidbot&quot; in the Telegram messenger.
-
 2.1.2 The user should also send &quot;/start&quot; to the bot created in step 1. If you skip this step, the Telegram bot won't be able to send messages to the user (bots cannot initiate conversations with users).
-
 2.2 Group notifications:
-
 2.2.1 Retrieve the group ID of the group that the bot should send messages to. Add &quot;@myidbot&quot; and the bot created in step 1 to your group.
-
 2.2.2 In the group chat, send: &quot;/getgroupid@myidbot&quot;.
-
 2.2.3 If the bot is added to a supergroup and you want the bot to send messages to a specific topic instead of the default &quot;General&quot; channel, right-click any message in that topic and click &quot;Copy Message Link&quot;. The copied link will have the following format: &quot;https://t.me/c/&lt;short_group_id&gt;/&lt;topic_id&gt;/&lt;message_id&gt;&quot;, for example: &quot;https://t.me/c/1234567890/2/1&quot;. In this example, the topic ID is &quot;2&quot;.
-
 Note:
 - The group ID is a negative number, for example: &quot;-1234567890&quot;.
 - The supergroup ID is a negative number prefixed with &quot;-100&quot;, for example: &quot;-1001234567890&quot;
 - The public group or supergroup ID can also be specified in media type properties as a name prefixed by &quot;@&quot;, for example: &quot;@MyGroupName&quot;.
-
 3. Depending on where you want to send notifications, copy and save the bot token, personal chat ID or group ID, and topic ID (if you want to send messages to a specific supergroup topic), as you will need these later to set up the media type in Zabbix.
-
 Zabbix configuration:
-
 1. Set the following webhook parameters:
 - &quot;api_parse_mode&quot; - the formatting mode applied for messages (possible values: &quot;markdown&quot;, &quot;html&quot;, &quot;markdownv2&quot;)
 - &quot;api_token&quot; - the token of the bot used to send messages
-
 Learn more about message formatting options in Telegram Bot API documentation:
 - Markdown: https://core.telegram.org/bots/api#markdown-style
 - HTML: https://core.telegram.org/bots/api#html-style
 - MarkdownV2: https://core.telegram.org/bots/api#markdownv2-style
-
 Note: Your Telegram-related actions should be separated from other notification types (e.g., SMS); otherwise, if you use Markdown or HTML in the alert subject or body, you may receive plain-text alerts with raw tags.
-
 2. Click the &quot;Enabled&quot; checkbox to enable the media type and click the &quot;Update&quot; button to save the webhook settings.
-
 3. Create a Zabbix user and add media:
 - To create a new user, go to the &quot;Users&quot; → &quot;Users&quot; section, click the &quot;Create user&quot; button in the top right corner. In the &quot;User&quot; tab, fill in all required fields (marked with red asterisks).
 - Make sure this user has access to all hosts for which you would like problem notifications to be sent to Telegram.
 - In the &quot;Media&quot; tab, click &quot;Add&quot; and select the type &quot;Telegram&quot; from the drop-down list.
 - In the &quot;Send to&quot; field, specify the Telegram user chat ID or group ID that you retrieved during Telegram setup. To send notifications to a specific topic within a supergroup, specify the topic ID after the semicolon delimiter in the format &quot;&lt;group_id&gt;:&lt;topic_id&gt;&quot;, for example: &quot;-1001234567890:2&quot;, &quot;@MyGroupName:2&quot;.
-
 4. Done! You can now start using this media type in actions and create tickets.
-
 You can find the latest version of this media and additional information in the official Zabbix repository:
 https://git.zabbix.com/projects/ZBX/repos/zabbix/browse/templates/media/telegram</description>
             <message_templates>
@@ -604,7 +525,6 @@ https://git.zabbix.com/projects/ZBX/repos/zabbix/browse/templates/media/telegram
 🕒 &lt;b&gt;Comenzó:&lt;/b&gt; {EVENT.TIME} del {EVENT.DATE}
 📊 &lt;b&gt;Severidad:&lt;/b&gt; {EVENT.SEVERITY}
 📈 &lt;b&gt;Datos operativos:&lt;/b&gt; {EVENT.OPDATA}
-
 </message>
                 </message_template>
                 <message_template>
@@ -613,13 +533,10 @@ https://git.zabbix.com/projects/ZBX/repos/zabbix/browse/templates/media/telegram
                     <subject>✅ Resuelto en {EVENT.DURATION}: {EVENT.NAME}</subject>
                     <message>
 🖥️ &lt;b&gt;Host:&lt;/b&gt; {HOST.NAME}
-
 📛 &lt;b&gt;Evento:&lt;/b&gt; {EVENT.NAME}
 🕒 &lt;b&gt;Duración total:&lt;/b&gt; {EVENT.DURATION}
 🕓 &lt;b&gt;Resuelto a las:&lt;/b&gt; {EVENT.RECOVERY.TIME} del {EVENT.RECOVERY.DATE}
 📊 &lt;b&gt;Severidad:&lt;/b&gt; {EVENT.SEVERITY}
-
-
 💚 &lt;b&gt;Estado:&lt;/b&gt; Normalizado. No se requiere intervención adicional.</message>
                 </message_template>
                 <message_template>
@@ -627,14 +544,11 @@ https://git.zabbix.com/projects/ZBX/repos/zabbix/browse/templates/media/telegram
                     <operation_mode>UPDATE</operation_mode>
                     <subject>Updated problem in {EVENT.AGE}: {EVENT.NAME}</subject>
                     <message>📝 &lt;b&gt;ACTUALIZACIÓN DE PROBLEMA&lt;/b&gt; en &lt;b&gt;{HOST.NAME}&lt;/b&gt;
-
 👤 &lt;b&gt;{USER.FULLNAME}&lt;/b&gt; {EVENT.UPDATE.ACTION} el problema el {EVENT.UPDATE.DATE} a las {EVENT.UPDATE.TIME}.
 💬 &lt;b&gt;Comentario:&lt;/b&gt; {EVENT.UPDATE.MESSAGE}
-
 📊 &lt;b&gt;Estado actual:&lt;/b&gt; {EVENT.STATUS}
 ⏱️ &lt;b&gt;Antigüedad:&lt;/b&gt; {EVENT.AGE}
 ✅ &lt;b&gt;Reconocido:&lt;/b&gt; {EVENT.ACK.STATUS}
-
 🔗 &lt;b&gt;Detalles:&lt;/b&gt; {TRIGGER.ID}</message>
                 </message_template>
                 <message_template>
@@ -642,12 +556,10 @@ https://git.zabbix.com/projects/ZBX/repos/zabbix/browse/templates/media/telegram
                     <operation_mode>PROBLEM</operation_mode>
                     <subject>Discovery: {DISCOVERY.DEVICE.STATUS} {DISCOVERY.DEVICE.IPADDRESS}</subject>
                     <message>Discovery rule: {DISCOVERY.RULE.NAME}
-
 Device IP: {DISCOVERY.DEVICE.IPADDRESS}
 Device DNS: {DISCOVERY.DEVICE.DNS}
 Device status: {DISCOVERY.DEVICE.STATUS}
 Device uptime: {DISCOVERY.DEVICE.UPTIME}
-
 Device service name: {DISCOVERY.SERVICE.NAME}
 Device service port: {DISCOVERY.SERVICE.PORT}
 Device service status: {DISCOVERY.SERVICE.STATUS}
@@ -689,7 +601,6 @@ Service: {SERVICE.NAME}
 Severity: {EVENT.SEVERITY}
 Original problem ID: {EVENT.ID}
 Service description: {SERVICE.DESCRIPTION}
-
 {SERVICE.ROOTCAUSE}</message>
                 </message_template>
                 <message_template>
@@ -710,7 +621,6 @@ Service description: {SERVICE.DESCRIPTION}</message>
                     <message>Changed &quot;{SERVICE.NAME}&quot; service status to {EVENT.UPDATE.SEVERITY} at {EVENT.UPDATE.DATE} {EVENT.UPDATE.TIME}.
 Current problem age is {EVENT.AGE}.
 Service description: {SERVICE.DESCRIPTION}
-
 {SERVICE.ROOTCAUSE}</message>
                 </message_template>
             </message_templates>

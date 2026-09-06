@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>7.0</version>
+    <version>7.4</version>
     <template_groups>
         <template_group>
             <uuid>36bff6c29af64692839d077febfc7079</uuid>
@@ -23,8 +23,8 @@
                     <name>UniFi - Devices JSON</name>
                     <type>EXTERNAL</type>
                     <key>unifi.py[ devices, {$UNIFI.URL}, {$UNIFI.USER}, {$UNIFI.PASSWORD}, {$UNIFI.SITE} ]</key>
+                    <history>2d</history>
                     <value_type>TEXT</value_type>
-                    <trends>0</trends>
                 </item>
             </items>
             <discovery_rules>
@@ -40,9 +40,7 @@
                             <name>{#NAME} - Clientes</name>
                             <type>DEPENDENT</type>
                             <key>unifi.ap.clients[{#MAC}]</key>
-                            <delay>0</delay>
                             <value_type>TEXT</value_type>
-                            <trends>0</trends>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -68,9 +66,7 @@
                             <name>{#NAME} - Firmware</name>
                             <type>DEPENDENT</type>
                             <key>unifi.ap.firmware[{#MAC}]</key>
-                            <delay>0</delay>
                             <value_type>TEXT</value_type>
-                            <trends>0</trends>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -88,7 +84,6 @@
                             <name>{#NAME} - RX</name>
                             <type>DEPENDENT</type>
                             <key>unifi.ap.rx[{#MAC}]</key>
-                            <delay>0</delay>
                             <value_type>FLOAT</value_type>
                             <units>bps</units>
                             <preprocessing>
@@ -100,9 +95,6 @@
                                 </step>
                                 <step>
                                     <type>CHANGE_PER_SECOND</type>
-                                    <parameters>
-                                        <parameter/>
-                                    </parameters>
                                 </step>
                                 <step>
                                     <type>MULTIPLIER</type>
@@ -120,7 +112,6 @@
                             <name>{#NAME} - Estado</name>
                             <type>DEPENDENT</type>
                             <key>unifi.ap.state[{#MAC}]</key>
-                            <delay>0</delay>
                             <value_type>FLOAT</value_type>
                             <preprocessing>
                                 <step>
@@ -147,7 +138,6 @@
                             <name>{#NAME} - TX</name>
                             <type>DEPENDENT</type>
                             <key>unifi.ap.tx[{#MAC}]</key>
-                            <delay>0</delay>
                             <value_type>FLOAT</value_type>
                             <units>bps</units>
                             <preprocessing>
@@ -159,9 +149,6 @@
                                 </step>
                                 <step>
                                     <type>CHANGE_PER_SECOND</type>
-                                    <parameters>
-                                        <parameter/>
-                                    </parameters>
                                 </step>
                                 <step>
                                     <type>MULTIPLIER</type>

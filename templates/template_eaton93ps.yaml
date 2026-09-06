@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.0'
+  version: '7.4'
   template_groups:
     - uuid: cba4f4cee5c643e698be8da68fa1234e
       name: Power
@@ -229,7 +229,6 @@ zabbix_export:
           delay: '86400'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -241,7 +240,6 @@ zabbix_export:
           delay: '86400'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -253,7 +251,6 @@ zabbix_export:
           delay: '86400'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -265,7 +262,6 @@ zabbix_export:
           delay: '86400'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -277,7 +273,6 @@ zabbix_export:
           delay: '86400'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -289,7 +284,6 @@ zabbix_export:
           delay: '30'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: System
@@ -585,7 +579,6 @@ zabbix_export:
           delay: '30'
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
               value: Test
