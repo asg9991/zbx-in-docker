@@ -1,6 +1,6 @@
 # Nombre de proyecto fijo: el prefijo de redes/contenedores no depende del
 # nombre del directorio, asi renombrar la carpeta no duplica el stack.
-name: noc-agent
+name: zbx-in-docker
 
 services:
 

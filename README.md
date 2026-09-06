@@ -2,8 +2,6 @@
 
 Stack Zabbix en Docker (server 7.4 + web + postgres 15 + nginx).
 
-> Nota: Grafana queda fuera del alcance por ahora.
-
 Stack de monitoreo basado en tecnologías Open Source para infraestructura de red, servidores y servicios.
 
 ## Componentes
