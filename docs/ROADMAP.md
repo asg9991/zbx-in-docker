@@ -74,6 +74,7 @@ Próximas métricas:
 
 - [ ] Actualización de imágenes
 - [ ] Backups automáticos
+- [ ] Backups offsite prod: definir destino y automatizar (cron)
 - [ ] Exportación de dashboards
 - [ ] Templates personalizados
 - [ ] Versionado de templates
