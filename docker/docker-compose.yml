@@ -1,3 +1,7 @@
+# Nombre de proyecto fijo: el prefijo de redes/contenedores no depende del
+# nombre del directorio, asi renombrar la carpeta no duplica el stack.
+name: zbx-in-docker
+
 services:
 
   postgres:
@@ -14,7 +18,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
     volumes:
-      - /opt/monitoring/data/postgres:/var/lib/postgresql/data
+      - ${DATA_DIR:-/opt/monitoring/data}/postgres:/var/lib/postgresql/data
 
     networks:
       - backend
@@ -34,10 +38,11 @@ services:
 
   zabbix-server:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile.zabbix-server
+      network: host
 
-    image: site-c/zabbix-server:7.0.6
+    image: lab/zabbix-server:7.4.13
     container_name: zabbix-server
     restart: unless-stopped
 
@@ -70,8 +75,38 @@ services:
         max-file: "5"
 
 
+  # Agente del propio lab: atiende los passive checks del host
+  # "Zabbix server" (su interfaz apunta al DNS zabbix-agent:10050).
+  zabbix-agent:
+    # Nota: agent2 no tiene repo "-alpine" en Docker Hub; el tag alpine
+    # vive en zabbix/zabbix-agent2.
+    image: zabbix/zabbix-agent2:alpine-7.4.13
+    container_name: zabbix-agent
+    restart: unless-stopped
+
+    environment:
+      ZBX_HOSTNAME: "Zabbix server"
+      # El entrypoint usa ZBX_SERVER_HOST tanto para checks activos como
+      # para el origen permitido de los pasivos. No agregar
+      # ZBX_PASSIVESERVERS con el mismo valor: duplica la entrada y agent2
+      # rechaza la config ("address specified more than once").
+      ZBX_SERVER_HOST: zabbix-server
+
+    depends_on:
+      - zabbix-server
+
+    networks:
+      - backend
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.6
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4.13
     container_name: zabbix-web
     restart: unless-stopped
 
@@ -103,46 +138,13 @@ services:
         max-file: "5"
 
 
-  grafana:
-    image: grafana/grafana:11.6.1
-    container_name: grafana
-    restart: unless-stopped
-
-    env_file:
-      - .env
-
-    environment:
-      TZ: ${TZ}
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_SERVER_ROOT_URL: http://192.0.2.11/grafana/
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-
-    volumes:
-      - /opt/monitoring/data/grafana:/var/lib/grafana
-
-    expose:
-      - "3000"
-
-    networks:
-      - backend
-      - frontend
-
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-
   nginx:
     image: nginx:alpine
-    container_name: monitoring-nginx
+    container_name: zbx-nginx
     restart: unless-stopped
 
     depends_on:
       - zabbix-web
-      - grafana
 
     ports:
       - "80:80"
@@ -160,11 +162,53 @@ services:
         max-file: "5"
 
 
+  # Solo lab: docker compose --profile lab up -d
+  # Alimenta los hosts simulados (trapper) segun docker/simulator/scenarios.yml.
+  lab-simulator:
+    profiles:
+      - "lab"
+
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.simulator
+      network: host
+
+    image: lab/lab-simulator:latest
+    container_name: lab-simulator
+    restart: unless-stopped
+
+    depends_on:
+      - zabbix-server
+
+    environment:
+      ZABBIX_SERVER: zabbix-server
+
+    volumes:
+      - ./simulator/scenarios.yml:/etc/lab-sim/scenarios.yml:ro
+
+    networks:
+      - backend
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
 networks:
 
+  # Lab local: subredes explicitas para evitar colisiones con otros
+  # proyectos Docker y con redes corporativas (ver docs/instalacion.md).
   backend:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.28.90.0/24
 
+  # Gestionada por este compose (antes externa monitoring-net, hoy red frontend),
+  # asi el stack es autocontenido y funciona en cualquier host.
   frontend:
-    external: true
-    name: monitoring-net
+    ipam:
+      config:
+        - subnet: 172.28.91.0/24
