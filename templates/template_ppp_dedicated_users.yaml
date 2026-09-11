@@ -20,7 +20,7 @@
 # confirmation) — no separate 1-7-1 entry by design.
 #
 # Risks: PPP idx flaps -> LLD re-discovers under new index, history splits.
-# Trigger prototype: zero-traffic (Bits sent = 0 sustained 30m, High) fires
+# Trigger prototype: zero-traffic (Bits received = 0 sustained 30m, High) fires
 # Mon-Fri 08:00-20:00 America/Argentina/Buenos_Aires by design — off-hours
 # covered by maintenance 'Usuarios dedicados - fuera de horario', NOT by
 # nodata() in the expression (weekend false positives feared by user).
@@ -50,7 +50,7 @@ zabbix_export:
         If live traffic shows the direction inverted, swap the two OIDs.
 
         Risk: PPP index flap -> LLD re-discovers under the new index and
-        history splits at the flap point. One trigger prototype: Bits sent
+        history splits at the flap point. One trigger prototype: Bits received
         = 0 sustained 30m (High), effective business hours via maintenance.
       groups:
         - name: 'Templates/Network devices'
@@ -105,6 +105,12 @@ zabbix_export:
                   error_handler: DISCARD_VALUE
               master_item:
                 key: net.ppp.walk
+              trigger_prototypes:
+                - uuid: 54a253162e47438d9873f075bf56dce7
+                  expression: 'min(/PPP Dedicated Users by SNMP/net.ppp.in[{#PPP_NAME}],30m)=0'
+                  name: 'Usuario {#PPP_NAME}: sin tráfico recibido 30m'
+                  priority: HIGH
+                  description: 'Bits received = 0 sustained 30m (High). Effective Mon-Fri 08:00-20:00 America/Argentina/Buenos_Aires via maintenance; off-hours suppressed by design, no nodata() in expression.'
               tags:
                 - tag: component
                   value: network
@@ -135,12 +141,6 @@ zabbix_export:
                   error_handler: DISCARD_VALUE
               master_item:
                 key: net.ppp.walk
-              trigger_prototypes:
-                - uuid: 4d03288c75104379b03a9b3e7617ee70
-                  expression: 'min(/PPP Dedicated Users by SNMP/net.ppp.out[{#PPP_NAME}],30m)=0'
-                  name: 'Usuario {#PPP_NAME}: sin tráfico enviado 30m'
-                  priority: HIGH
-                  description: 'Bits sent = 0 sustained 30m (High). Effective Mon-Fri 08:00-20:00 America/Argentina/Buenos_Aires via maintenance; off-hours suppressed by design, no nodata() in expression.'
               tags:
                 - tag: component
                   value: network
