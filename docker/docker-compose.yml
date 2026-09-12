@@ -162,6 +162,36 @@ services:
         max-file: "5"
 
 
+  # Spike Fase 2 (lab-only, read-only): initMAX/zabbix-mcp-server v1.36.1.
+  # Imagen local construida desde clon pristino (ghcr.io deniega pull anonimo).
+  # Config con secretos en ./zabbix-mcp-config.toml (ignorado por git, mount ro).
+  zabbix-mcp:
+    image: lab/zabbix-mcp-server:1.36.1
+    container_name: zabbix-mcp
+    restart: unless-stopped
+
+    command: ["--config", "/etc/zabbix-mcp/config.toml", "--host", "0.0.0.0", "--port", "8080"]
+
+    depends_on:
+      - zabbix-web
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    volumes:
+      - ./zabbix-mcp-config.toml:/etc/zabbix-mcp/config.toml:ro
+
+    networks:
+      - backend
+      - frontend
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
   # Solo lab: docker compose --profile lab up -d
   # Alimenta los hosts simulados (trapper) segun docker/simulator/scenarios.yml.
   lab-simulator:

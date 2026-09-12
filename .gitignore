@@ -1,6 +1,9 @@
 # Variables de entorno
 .env
 
+# Config local con secretos (spike MCP lab-only, nunca commitear con valores)
+docker/zabbix-mcp-config.toml
+
 # Datos persistentes
 data/
 
