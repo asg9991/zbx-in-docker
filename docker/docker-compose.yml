@@ -146,11 +146,27 @@ services:
     depends_on:
       - zabbix-web
 
+    # Site identity comes from the environment (see .env.example).
+    # SERVER_NAME is per-site; CERT_DIR/ACME_WEBROOT defaults match the
+    # mounts below. Plain ${VAR} in the template: envsubst does not expand
+    # ${VAR:-default}, so defaults live here, not in the template file.
+    # NOTE: no env_file on purpose — only these three vars enter the
+    # container (values themselves come from the project .env / shell).
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      CERT_DIR: ${CERT_DIR:-/etc/nginx/certs}
+      ACME_WEBROOT: ${ACME_WEBROOT:-/var/www/certbot}
+
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
 
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Generic template rendered by the nginx image entrypoint (envsubst)
+      # into /etc/nginx/conf.d/default.conf. No domain is hardcoded.
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${DATA_DIR:-/opt/monitoring/data}/certs:${CERT_DIR:-/etc/nginx/certs}:ro
+      - ${DATA_DIR:-/opt/monitoring/data}/certbot-webroot:${ACME_WEBROOT:-/var/www/certbot}:rw
 
     networks:
       - frontend

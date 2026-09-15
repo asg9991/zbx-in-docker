@@ -1,0 +1,51 @@
+# Example: RENDERED output of default.conf.template for site-a.
+#
+# Generated with SERVER_NAME=zabbix.example.com and default CERT_DIR /
+# ACME_WEBROOT. Do NOT mount this file: it is documentation of what the
+# nginx entrypoint (envsubst) produces from the template. Contains NO
+# secrets (only public paths and the public DNS name).
+#
+# Rendered from docker/nginx/default.conf.template; if the template
+# changes, re-render to refresh this example:
+#   SERVER_NAME=zabbix.example.com CERT_DIR=/etc/nginx/certs \
+#     ACME_WEBROOT=/var/www/certbot \
+#     envsubst '${SERVER_NAME} ${CERT_DIR} ${ACME_WEBROOT}' \
+#     < docker/nginx/default.conf.template
+server_tokens off;
+
+server {
+    listen 80;
+    server_name zabbix.example.com _;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name zabbix.example.com;
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    server_tokens off;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+
+    location / {
+        proxy_pass http://zabbix-web:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+    }
+}
