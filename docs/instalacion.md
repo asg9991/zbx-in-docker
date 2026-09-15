@@ -76,6 +76,34 @@ proyecto o del home:
 DATA_DIR=/home/usuario/zbx-in-docker/data
 ```
 
+## Tuning — Ajustar el server a tu escala (¡no uses los defaults en producción!)
+
+La imagen oficial trae defaults mínimos: `StartPollers=5`, `StartPingers=1`, `CacheSize=32M`. Con >50 hosts o mucho SNMP/ICMP eso genera cola, `temporarily disabling` y falsos positivos idénticos a los vistos en site-a.
+
+El repo trae un **perfil base productivo** en `.env.example` probado en site-a (123 hosts / 28k items / 32 APs / 8 cores / 62 GiB):
+
+```ini
+ZBX_STARTPOLLERS=30
+ZBX_STARTSNMPPOLLERS=25
+ZBX_STARTPINGERS=20
+ZBX_STARTPOLLERSUNREACHABLE=5
+ZBX_STARTTRAPPERS=10
+ZBX_STARTPREPROCESSORS=16
+ZBX_STARTDBSYNCERS=8
+ZBX_CACHESIZE=2G
+ZBX_VALUECACHESIZE=2G
+```
+
+> **Salvedad:** cada instalación **DEBE** ajustar. Más hosts/items/SNMP/preprocessing necesitan más pollers/pingers y más cache. Si migrás desde un Zabbix nativo, replicá `StartPingers`, `CacheSize`, `ValueCacheSize` de tu `zabbix_server.conf` previo. Para tuning fino mirá `Administration → Queue` y `docker exec zabbix-server ps aux` (busy pollers) y la doc oficial de sizing.
+
+| Variable | Qué regula | Cuándo subirla |
+|---|---|---|
+| `ZBX_STARTPOLLERS` | Pollers genéricos | Muchos items agent/SNMP sin cola |
+| `ZBX_STARTSNMPPOLLERS` | SNMP exclusivo | Muchos APs/switches SNMP (ej. site-a 32 APs) |
+| `ZBX_STARTPINGERS` | ICMP (fping) | Muchos `icmpping` (1 pinger ≈ 1k checks/min) |
+| `ZBX_CACHESIZE` / `VALUECACHESIZE` | Config cache | `CacheSize` o `ValueCache` >80% en Dashboard |
+| `ZBX_STARTPREPROCESSORS` | Preprocessing | `queued` alto en `ps aux` |
+
 ## Paso 3 — Levantar el stack
 
 ```bash
