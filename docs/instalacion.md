@@ -6,7 +6,7 @@ credenciales y contraseñas antes del primer arranque.
 ## Requisitos
 
 - Docker Engine 24+ con Docker Compose v2 (`docker compose version`)
-- Puertos libres en el host: **80** (nginx) y **10051** (trapper de Zabbix)
+- Puertos libres en el host: **80 y 443** (nginx HTTP/HTTPS) y **10051** (trapper de Zabbix)
 - ~2 GB de RAM disponibles para los contenedores
 
 ## Paso 1 — Obtener el repositorio
@@ -42,6 +42,12 @@ openssl rand -base64 18
 | `TZ`                | zabbix-web                          | Timezone del frontend PHP                          |
 | `SERVER_IP`         | integraciones (macros)              | IP pública/referencia del server                   |
 | `DATA_DIR`          | volúmenes del compose               | Base de datos persistentes (ver abajo)             |
+| `SERVER_NAME`       | nginx (template)                    | DNS público del sitio — **per-site**, sin default  |
+| `HTTP_PORT`/`HTTPS_PORT` | nginx (published)              | Puertos publicados (default 80/443)                |
+
+TLS: el nginx termina HTTPS con el template `docker/nginx/default.conf.template`
+(`SERVER_NAME` + cert en `${DATA_DIR}/certs`). Procedimientos:
+`docs/tls-letsencrypt-direct.md` (default) o `docs/tls-cloudflare-origin.md`.
 
 ### Dónde vive cada contraseña
 
@@ -90,7 +96,7 @@ curl -s http://127.0.0.1/api_jsonrpc.php \
 # → {"jsonrpc":"2.0","result":"7.4.13","id":1}
 ```
 
-Frontend: `http://localhost` — usuario por defecto `Admin` / `zabbix`.
+Frontend: `https://<SERVER_NAME>` (o `http://localhost` en lab sin TLS) — usuario por defecto `Admin` / `zabbix`.
 **Cambiar esa contraseña en el primer login.**
 
 ## Paso 5 — Agente del propio server

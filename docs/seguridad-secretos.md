@@ -35,3 +35,13 @@
 2. Configurar la macro correspondiente en producción con el nuevo valor.
 3. Evaluar de forma coordinada la limpieza del historial (por ejemplo con
    `git filter-repo`), avisando a quienes tengan clones existentes.
+
+## Claves privadas TLS (privkey.pem)
+
+- Ubicación: `${DATA_DIR}/certs/privkey.pem` en cada host (fuera de git,
+  montado `:ro` en nginx). Nunca commitear `*.pem` ni `*.key`.
+- Permisos: `600` (ver `docker/certbot-deploy-hook.sh.example`, que usa
+  `install -m 600`). El `fullchain.pem` puede ir `644` (no es secreto).
+- Nunca imprimir el contenido de la key en logs, issues, ni salida de
+  comandos (`cat`, `diff` sin `cmp -s`, etc.). Para verificar, comparar
+  hashes del módulo o fechas, no el material.
