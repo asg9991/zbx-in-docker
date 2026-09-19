@@ -117,6 +117,27 @@ Por este motivo, las copias externas deben existir y estar verificadas
 **antes** de la Fase 2 de cada sitio. Ningún corte a producción se da por
 cerrado sin ellas.
 
+## 5. Respaldo mensual solo-configuración a Drive (por cliente)
+
+Una vez por mes, cada sitio genera un volcado **solo-configuración** con
+`scripts/backup-config-monthly.sh` (variables `SITE`, `DB_TYPE`, `DATA_DIR`):
+
+```bash
+SITE=site-a scripts/backup-config-monthly.sh
+```
+
+El script excluye siempre las 7 tablas de historial/tendencias
+(`history*`, `trends*`) en MySQL, o vuelca la base de configuración en
+Postgres; el resultado pesa pocos MB comprimido. Conserva 3 copias
+rotativas en el host más una copia mensual `YYYYMM`, verifica integridad
+con `gzip -t` y valida conteos de `hosts`/`items`.
+
+La copia mensual se sube a Drive a
+`projects/CLIENTES/<SITE>/zbx-backups/YYYYMM/` (manual o con
+rclone/agente; el script imprime el destino y el ejemplo). El historial
+completo queda fuera de alcance: ante un desastre se reconstruye la
+configuración, no las series históricas.
+
 ## Anexo A — Datos por sitio (ejemplos documentados)
 
 | Sitio | Estado | `SERVER_NAME` (ejemplo) | `DATA_DIR` | Respaldo | Puertos / TLS |
