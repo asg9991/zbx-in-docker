@@ -1,0 +1,183 @@
+# PPP dedicated-users LLD template (Zabbix 7.4 export format).
+#
+# Durable layer for dedicated PPP users (manual per-user items/graphs/dashboard
+# already exist elsewhere — DO NOT touch them; this template is the LLD layer).
+#
+# Discovery: LLD on MikroTik active-PPP name column
+#   .1.3.6.1.4.1.14988.1.1.2.1.1.2  -> LLD macro {#PPP_NAME}
+# Counters (assumption UNCONFIRMED — see template description):
+#   col .8 (.1.3.6.1.4.1.14988.1.1.2.1.1.8) treated as IN / Bits received
+#   col .9 (.1.3.6.1.4.1.14988.1.1.2.1.1.9) treated as OUT / Bits sent
+#   If live traffic shows the direction inverted, swap the two item-prototype
+#   OIDs (and graph colors) — history splits at the swap point by design.
+#
+# Whitelist (LLD filter on {#PPP_NAME}, case-insensitive exact match):
+#   enlace-pppoe-coopvinia, Enlace-franciscosellart,
+#   <pppoe-franciscosellartjuanxxiii>, <pppoe-southernseeds>,
+#   Enlace-multijactosa, Enlace-arrebeef, <pppoe-buratovichhnos>,
+#   Enlace-patrullarural, Enlace-garfin, Enlace-Soychu
+# NOTE: Enlace-Soychu covers BOTH soychu and 1-7-1 (same link per user
+# confirmation) — no separate 1-7-1 entry by design.
+#
+# Risks: PPP idx flaps -> LLD re-discovers under new index, history splits.
+# Trigger prototype: zero-traffic (Bits received = 0 sustained 30m, High) fires
+# Mon-Fri 08:00-20:00 America/Argentina/Buenos_Aires by design — off-hours
+# covered by maintenance 'Usuarios dedicados - fuera de horario', NOT by
+# nodata() in the expression (weekend false positives feared by user).
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 299c38f2c1094cabaf9676e6f9d6bea2
+      name: 'Templates/Network devices'
+  templates:
+    - uuid: 16a2353f628340b288f6b844922bd923
+      template: 'PPP Dedicated Users by SNMP'
+      name: 'PPP Dedicated Users by SNMP'
+      description: |
+        Durable LLD layer for dedicated PPP users (manual per-user items/graphs/
+        dashboard live elsewhere and are out of scope for this template).
+
+        Discovery on MikroTik active-PPP name column
+        .1.3.6.1.4.1.14988.1.1.2.1.1.2 -> {#PPP_NAME}; filter is a
+        case-insensitive exact-match whitelist (see {$PPP.DEDICATED.MATCHES}).
+
+        Enlace-Soychu covers BOTH soychu and 1-7-1 (same link per user
+        confirmation) — no separate 1-7-1 entry by design.
+
+        DIRECTION ASSUMPTION (UNCONFIRMED): col .8 is treated as IN (Bits
+        received, green 199C0D gradient behind) and col .9 as OUT (Bits sent,
+        red F63100 line on top), mirroring the Netflix-style VLAN template.
+        If live traffic shows the direction inverted, swap the two OIDs.
+
+        Risk: PPP index flap -> LLD re-discovers under the new index and
+        history splits at the flap point. One trigger prototype: Bits received
+        = 0 sustained 30m (High), effective business hours via maintenance.
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - uuid: ef8c84effc3f436689c133ca9376697f
+          name: 'PPP dedicated: SNMP walk active entries'
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.14988.1.1.2.1.1.2,1.3.6.1.4.1.14988.1.1.2.1.1.8,1.3.6.1.4.1.14988.1.1.2.1.1.9]'
+          key: net.ppp.walk
+          delay: 1m
+          history: '0'
+          value_type: TEXT
+          description: 'Master walk feeding PPP dedicated-users discovery and 64-bit counters (MikroTik private MIB, numeric OIDs).'
+          tags:
+            - tag: component
+              value: raw
+      discovery_rules:
+        - uuid: c90cdaa214b74e3da58acb23eee6cf8e
+          name: 'PPP dedicated users discovery'
+          type: DEPENDENT
+          key: net.ppp.discovery
+          delay: 1h
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#PPP_NAME}'
+                value: '{$PPP.DEDICATED.MATCHES}'
+          description: 'Discovers whitelisted dedicated PPP users only (case-insensitive exact match on {#PPP_NAME}).'
+          item_prototypes:
+            - uuid: 00f5dfeae9ec4cbfae3e4dd2e8532b03
+              name: 'PPP {#PPP_NAME}: Bits received'
+              type: DEPENDENT
+              key: 'net.ppp.in[{#PPP_NAME}]'
+              delay: 1m
+              units: bps
+              value_type: UNSIGNED
+              description: |
+                MikroTik active-PPP col .8 (.1.3.6.1.4.1.14988.1.1.2.1.1.8), Counter64.
+                Rate per second x8 = bits per second.
+                DIRECTION ASSUMPTION UNCONFIRMED: col .8 treated as IN.
+              preprocessing:
+                - type: SNMP_WALK_VALUE
+                  parameters:
+                    - '1.3.6.1.4.1.14988.1.1.2.1.1.8.{#SNMPINDEX}'
+                    - '0'
+                  error_handler: DISCARD_VALUE
+                - type: CHANGE_PER_SECOND
+                  error_handler: DISCARD_VALUE
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: net.ppp.walk
+              trigger_prototypes:
+                - uuid: 54a253162e47438d9873f075bf56dce7
+                  expression: 'min(/PPP Dedicated Users by SNMP/net.ppp.in[{#PPP_NAME}],30m)=0'
+                  name: 'Usuario {#PPP_NAME}: sin tráfico recibido 30m'
+                  priority: HIGH
+                  description: 'Bits received = 0 sustained 30m (High). Effective Mon-Fri 08:00-20:00 America/Argentina/Buenos_Aires via maintenance; off-hours suppressed by design, no nodata() in expression.'
+              tags:
+                - tag: component
+                  value: network
+                - tag: ppp_user
+                  value: '{#PPP_NAME}'
+            - uuid: c308e6a9dd0a46ad917678d683bd5381
+              name: 'PPP {#PPP_NAME}: Bits sent'
+              type: DEPENDENT
+              key: 'net.ppp.out[{#PPP_NAME}]'
+              delay: 1m
+              units: bps
+              value_type: UNSIGNED
+              description: |
+                MikroTik active-PPP col .9 (.1.3.6.1.4.1.14988.1.1.2.1.1.9), Counter64.
+                Rate per second x8 = bits per second.
+                DIRECTION ASSUMPTION UNCONFIRMED: col .9 treated as OUT.
+              preprocessing:
+                - type: SNMP_WALK_VALUE
+                  parameters:
+                    - '1.3.6.1.4.1.14988.1.1.2.1.1.9.{#SNMPINDEX}'
+                    - '0'
+                  error_handler: DISCARD_VALUE
+                - type: CHANGE_PER_SECOND
+                  error_handler: DISCARD_VALUE
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: net.ppp.walk
+              tags:
+                - tag: component
+                  value: network
+                - tag: ppp_user
+                  value: '{#PPP_NAME}'
+          graph_prototypes:
+            - uuid: cc6ea2cab9ca4c8287739da154e363e5
+              name: 'PPP {#PPP_NAME}: Traffic'
+              graph_items:
+                - drawtype: GRADIENT_LINE
+                  color: 199C0D
+                  item:
+                    host: 'PPP Dedicated Users by SNMP'
+                    key: 'net.ppp.in[{#PPP_NAME}]'
+                - sortorder: '1'
+                  drawtype: BOLD_LINE
+                  color: F63100
+                  item:
+                    host: 'PPP Dedicated Users by SNMP'
+                    key: 'net.ppp.out[{#PPP_NAME}]'
+          master_item:
+            key: net.ppp.walk
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#PPP_NAME}'
+                - 1.3.6.1.4.1.14988.1.1.2.1.1.2
+                - '0'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1h
+      tags:
+        - tag: class
+          value: network
+        - tag: target
+          value: mikrotik
+      macros:
+        - macro: '{$PPP.DEDICATED.MATCHES}'
+          value: '(?i)^(<pppoe-franciscosellartjuanxxiii>|<pppoe-southernseeds>|<pppoe-buratovichhnos>|enlace-pppoe-coopvinia|enlace-franciscosellart|enlace-multijactosa|enlace-arrebeef|enlace-patrullarural|enlace-garfin|enlace-soychu)$'
+          description: 'LLD whitelist: dedicated PPP users, case-insensitive exact match. Enlace-Soychu covers soychu + 1-7-1 (same link).'

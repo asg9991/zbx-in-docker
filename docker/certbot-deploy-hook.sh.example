@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# certbot deploy-hook template for zbx-in-docker (copy example, do not commit secrets).
+#
+# Usage: cp docker/certbot-deploy-hook.sh.example /root/certbot-deploy-hook.sh
+#        (outside the repo) and reference it from certbot with --deploy-hook.
+# Certbot provides $RENEWED_LINEAGE (e.g. /etc/letsencrypt/live/<domain>)
+# and $RENEWED_DOMAINS when it runs this hook.
+#
+# Behavior: idempotent copy of fullchain.pem + privkey.pem into the certs
+# directory nginx mounts :ro, then restart ONLY the nginx service.
+# All paths are configurable via env; defaults are the site-a-tested ones.
+set -euo pipefail
+
+: "${DATA_DIR:=/opt/monitoring/data}"
+: "${COMPOSE_DIR:=/opt/monitoring/zbx-in-docker/docker}"
+: "${NGINX_SERVICE:=nginx}"
+CERTS_DIR="${CERTS_DIR:-${DATA_DIR}/certs}"
+
+: "${RENEWED_LINEAGE:?deploy-hook must run from certbot (RENEWED_LINEAGE unset)}"
+
+changed=0
+for f in fullchain.pem privkey.pem; do
+    if [ ! -f "${CERTS_DIR}/${f}" ] || ! cmp -s "${RENEWED_LINEAGE}/${f}" "${CERTS_DIR}/${f}"; then
+        install -m 600 "${RENEWED_LINEAGE}/${f}" "${CERTS_DIR}/${f}"
+        changed=1
+    fi
+done
+
+if [ "${changed}" -eq 1 ]; then
+    docker compose --project-directory "${COMPOSE_DIR}" restart "${NGINX_SERVICE}"
+fi

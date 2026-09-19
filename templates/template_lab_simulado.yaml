@@ -1,0 +1,104 @@
+zabbix_export:
+  version: '7.4'
+  templates:
+    - uuid: ccaea318aacd48a6ba12943838d8105f
+      template: Lab Simulado
+      name: Lab Simulado
+      description: |
+        Dispositivos simulados para el laboratorio del NOC Agent.
+        Los datos llegan por trapper (zabbix_sender) desde el contenedor
+        del simulador; las ventanas de incidente estan definidas en
+        docker/simulator/scenarios.yml. Ver docs/instalacion.md.
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: 4e47e293bff34ce0b9f3cf117a11dcfb
+          type: TRAP
+          name: 'CPU utilizacion (%)'
+          key: lab.cpu.util
+          value_type: FLOAT
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: e80e2780466c4e86872cc595e879164d
+              expression: 'avg(/Lab Simulado/lab.cpu.util,3m)>90'
+              name: 'CPU alta en equipo simulado (>90%)'
+              event_name: 'CPU alta: {ITEM.LASTVALUE1}% en {HOST.NAME}'
+              opdata: 'CPU: {?avg(/Lab Simulado/lab.cpu.util,3m)}%'
+              priority: HIGH
+              description: 'Promedio de CPU sobre 3m supera el umbral.'
+        - uuid: 9d6be88cf1c043eebe39dd36a30028ad
+          type: TRAP
+          name: 'Memoria utilizada (%)'
+          key: lab.mem.util
+          value_type: FLOAT
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: 510432a8e8ed413c985a65d1db229115
+              expression: 'last(/Lab Simulado/lab.mem.util)>90'
+              name: 'Memoria alta en equipo simulado (>90%)'
+              event_name: 'Memoria {ITEM.LASTVALUE1}% en {HOST.NAME}'
+              opdata: 'MEM: {?last(/Lab Simulado/lab.mem.util)}%'
+              priority: AVERAGE
+              description: 'Uso de memoria supera el umbral.'
+        - uuid: 5b325e056a424f7bbb59ff6daf2cd6ca
+          type: TRAP
+          name: 'Disco utilizado (%)'
+          key: lab.disk.used.pct
+          value_type: FLOAT
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: 99afeba67f8f4240b6b27b3514fd875e
+              expression: 'last(/Lab Simulado/lab.disk.used.pct)>85'
+              name: 'Disco casi lleno en equipo simulado (>85%)'
+              event_name: 'Disco {ITEM.LASTVALUE1}% en {HOST.NAME}'
+              opdata: 'DISCO: {?last(/Lab Simulado/lab.disk.used.pct)}%'
+              priority: AVERAGE
+              description: 'Uso de disco supera el umbral. En server-sim-03 es un problema persistente (no se recupera solo).'
+        - uuid: 7f0d6b3254774c7a8deb78987443123e
+          type: TRAP
+          name: 'Perdida de paquetes (%)'
+          key: lab.net.packet.loss.pct
+          value_type: FLOAT
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: 9e89460bf1514838b1cb4d6eab069c85
+              expression: 'avg(/Lab Simulado/lab.net.packet.loss.pct,3m)>20'
+              name: 'Perdida de paquetes en equipo simulado (>20%)'
+              event_name: 'Perdida {ITEM.LASTVALUE1}% en {HOST.NAME}'
+              opdata: 'PERDIDA: {?avg(/Lab Simulado/lab.net.packet.loss.pct,3m)}%'
+              priority: HIGH
+              description: 'Promedio de perdida de paquetes sobre 3m supera el umbral.'
+        - uuid: 560591851b1a4fdfb22213a002182cb0
+          type: TRAP
+          name: 'Latencia (ms)'
+          key: lab.net.latency.ms
+          value_type: FLOAT
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: 3c5b2e417b9b4163a91e62c4d28435c7
+              expression: 'avg(/Lab Simulado/lab.net.latency.ms,3m)>150'
+              name: 'Latencia alta en equipo simulado (>150ms)'
+              event_name: 'Latencia {ITEM.LASTVALUE1}ms en {HOST.NAME}'
+              opdata: 'LATENCIA: {?avg(/Lab Simulado/lab.net.latency.ms,3m)}ms'
+              priority: WARNING
+              description: 'Promedio de latencia sobre 3m supera el umbral.'
+        - uuid: e7f189223d904b0fa563ce03b3431123
+          type: TRAP
+          name: 'Estado del link (1=up, 0=down)'
+          key: lab.link.status
+          value_type: UNSIGNED
+          history: 7d
+          trends: 30d
+          triggers:
+            - uuid: c27d54dbdd0d49c2b7fc002603f52c42
+              expression: 'last(/Lab Simulado/lab.link.status)=0'
+              name: 'Link caido en equipo simulado'
+              event_name: 'Link caido: {HOST.NAME}'
+              opdata: 'Estado: {?last(/Lab Simulado/lab.link.status)}'
+              priority: HIGH
+              description: 'El link simulado reporta down. Ventana de incidente definida en scenarios.yml.'

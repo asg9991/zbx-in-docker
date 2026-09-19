@@ -1,0 +1,68 @@
+schema: spec-driven
+artifact_store: openspec
+strict_tdd: false
+
+context: |
+  Tech stack: Docker Compose (Zabbix Server 7.4 LTS + Web + Postgres 15 + Nginx + Agent2), Python 3 (requests, PyYAML, zabbix-utils), Shell/Bash.
+  Architecture: Multi-service compose with isolated backend/frontend networks (172.28.90/91), custom Zabbix Server image (python3+requests for External Checks), UniFi Network API integration (LLD/Master+Dependent items), trapper-based lab simulator (deterministic clock function), 18 Zabbix templates, pgloader migration path.
+  Testing: No automated test runner — manual validation via docker compose config / up, python3 compilation, and Zabbix JSON-RPC API checks. Python bootstrap scripts are stdlib-only and idempotent.
+  Style: Infrastructure-as-code, per-site .env templating (no hardcoded domains), Nginx envsubst templates, explicit production tuning defaults in .env.example, docs/templates/scripts/docker layout.
+
+# Strict TDD disabled: zero conventional project markers (package.json/go.mod/pyproject.toml/Cargo.toml) found at workspace root or two levels below, and no workspace-level test command covers all in-scope projects. Downstream phases run without RED-GREEN-REFACTOR gate; manual verification required.
+testing:
+  strict_tdd: false
+  strict_tdd_reason: "No explicit strict_tdd marker and no workspace-level test command covering all projects. Zero conventional project roots discovered in bounded scan — validation is infrastructure-manual (Docker/Python). Local commands preserved per-project; no synthesized combined runner."
+  detected: "2026-09-18"
+  projects: []
+  # Infra capabilities (workspace-level) — not a conventional language project but the real stack
+  capabilities:
+    workspace_root: "."
+    stack: "Docker Compose + Python 3"
+    test_command: ""
+    test_framework: ""
+    layers:
+      unit: { available: false, tool: "—" }
+      integration: { available: false, tool: "—" }
+      e2e: { available: false, tool: "—" }
+    coverage: { available: false, command: "—" }
+    quality:
+      linter: { available: false, command: "—" }
+      type_checker: { available: false, command: "—" }
+      formatter: { available: false, command: "—" }
+    manual_validation:
+      - "docker compose -f docker/docker-compose.yml config"
+      - "docker compose -f docker/docker-compose.yml up -d --build (lab profile: --profile lab)"
+      - "python3 -m py_compile scripts/unifi/*.py scripts/*.py docker/simulator/sender.py"
+      - "curl /api_jsonrpc.php or bootstrap scripts (bootstrap_lab_agent.py / bootstrap_lab_sim.py) with ZABBIX_URL/ZABBIX_PASSWORD"
+
+projects: []
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes (compose/network/data volume impacts)
+    - Document per-site env impact (SERVER_NAME, DATA_DIR, TLS vars)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Keep infra specs environment-agnostic; per-site values live in .env, not specs
+  design:
+    - Include sequence/compose diagrams for multi-service flows
+    - Document architecture decisions with rationale and alternatives
+    - Note data persistence and network isolation (backend internal, frontend exposed)
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Separate infra (compose/Dockerfile/nginx) from template/script changes
+  apply:
+    guidelines:
+      - Follow existing compose/envsubst/nginx templating patterns
+      - Preserve idempotency in bootstrap scripts (stdlib only, no new deps without approval)
+      - Never hardcode per-site domains or secrets; use ${VAR} + .env.example
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "docker compose -f docker/docker-compose.yml config"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas (DB volumes, network subnets, template triggers)

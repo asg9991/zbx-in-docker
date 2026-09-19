@@ -1,0 +1,65 @@
+# Generic TLS reverse-proxy vhost for zbx-in-docker.
+#
+# This is a TEMPLATE, not a final nginx config. The nginx image entrypoint
+# renders it with envsubst on container start:
+#   /etc/nginx/templates/default.conf.template -> /etc/nginx/conf.d/default.conf
+# (see the nginx service in docker-compose.yml for the mount.)
+#
+# Variables (plain ${VAR} only: envsubst does not expand ${VAR:-default},
+# so defaults live in docker-compose.yml `environment:`):
+#   SERVER_NAME   public DNS name of this site, e.g. zabbix.example.com.
+#                 Per-site: each deployment sets its own value, no default
+#                 domain is hardcoded here. SERVER_NAME and ports come from env (see docker/.env.example). No domain hardcoded here.
+#   CERT_DIR      directory holding fullchain.pem + privkey.pem (mounted :ro).
+#                 Host path is ${DATA_DIR}/certs (default /opt/monitoring/data/certs).
+#   ACME_WEBROOT  webroot directory for HTTP-01 challenges (mounted :rw).
+#                 Host path is ${DATA_DIR}/certbot-webroot.
+#
+# NOTE: nginx runtime variables ($host, $scheme, ...) use a single $ and
+# pass through untouched: the image entrypoint runs envsubst with an
+# explicit list of container env vars (all UPPERCASE), so lowercase nginx
+# variables are never substituted. Do NOT write $$ here.
+server_tokens off;
+
+# Port 80: HTTP-01 bypass plus redirect to HTTPS only.
+server {
+    listen 80;
+    # "_" fallback: unknown Host values get the same redirect
+    # instead of a separate vhost.
+    server_name ${SERVER_NAME} _;
+
+    # HTTP-01 bypass: kept servable over plain HTTP for certbot webroot.
+    location ^~ /.well-known/acme-challenge/ {
+        root ${ACME_WEBROOT};
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${SERVER_NAME};
+    # No "_" fallback here by design: with a single 443 vhost, unknown
+    # SNI names fall through to this default server.
+
+    ssl_certificate ${CERT_DIR}/fullchain.pem;
+    ssl_certificate_key ${CERT_DIR}/privkey.pem;
+
+    server_tokens off;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+
+    location / {
+        proxy_pass http://zabbix-web:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+    }
+}

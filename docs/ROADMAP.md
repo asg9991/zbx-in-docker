@@ -6,7 +6,6 @@
 - [x] PostgreSQL
 - [x] Zabbix Server
 - [x] Zabbix Web
-- [x] Grafana
 - [x] Nginx Reverse Proxy
 - [x] Agent2 local
 - [x] Imagen personalizada de Zabbix Server
@@ -20,9 +19,9 @@
 
 - [x] README del proyecto
 - [x] Arquitectura general
-- [ ] Guía de instalación
-- [ ] Backup
-- [ ] Restore
+- [x] Guía de instalación
+- [x] Backup (2026-09-06)
+- [x] Restore (2026-09-06)
 - [ ] Troubleshooting general
 
 ### Integraciones
@@ -75,6 +74,7 @@ Próximas métricas:
 
 - [ ] Actualización de imágenes
 - [ ] Backups automáticos
+- [ ] Backups offsite prod: definir destino y automatizar (cron)
 - [ ] Exportación de dashboards
 - [ ] Templates personalizados
 - [ ] Versionado de templates
@@ -89,3 +89,15 @@ Próximas métricas:
 - [ ] CI/CD
 - [ ] Versionado
 - [ ] Release v1.0
+
+---
+
+## Fase 6 - NOC Agent
+
+Asistente inteligente sobre la plataforma. Ver [docs/noc-agent/arquitectura.md](noc-agent/arquitectura.md).
+
+- [x] Fase 0: Compose parametrizado para lab local (`DATA_DIR`) y stack levantado
+- [x] Fase 1: Datos simulados con triggers que generan problemas reales
+- [ ] Fase 2: Hub MCP (zabbix-mcp-server filtrado read-only) validado con endpoint externo
+- [ ] Fase 3: Orquestador (router determinista + clasificador + cliente MCP)
+- [ ] Fase 4: Adapter Discord (alertas→hilos, botones, ephemeral)

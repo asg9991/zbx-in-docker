@@ -1,3 +1,7 @@
+# Nombre de proyecto fijo: el prefijo de redes/contenedores no depende del
+# nombre del directorio, asi renombrar la carpeta no duplica el stack.
+name: zbx-in-docker
+
 services:
 
   postgres:
@@ -14,16 +18,19 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
     volumes:
-      - /opt/monitoring/data/postgres:/var/lib/postgresql/data
+      - ${DATA_DIR:-/opt/monitoring/data}/postgres:/var/lib/postgresql/data
+      # Backup staging for streamed dumps (gzip -t gate). Optional at runtime; documents expected layout under ${DATA_DIR}/bkp-pre-docker.
+      - ${DATA_DIR:-/opt/monitoring/data}/bkp-pre-docker:/var/opt/bkp-pre-docker:ro
 
     networks:
       - backend
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
     logging:
       driver: json-file
@@ -34,10 +41,11 @@ services:
 
   zabbix-server:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile.zabbix-server
+      network: host
 
-    image: site-c/zabbix-server:7.0.6
+    image: lab/zabbix-server:7.4.13
     container_name: zabbix-server
     restart: unless-stopped
 
@@ -63,6 +71,53 @@ services:
     volumes:
       - ../scripts:/usr/lib/zabbix/externalscripts:ro
 
+    healthcheck:
+      # API version probe once web is healthy; server auto-migrates schema on first start (major upgrades traverse multiple patch levels).
+      test: ["CMD-SHELL", "wget -qO- http://zabbix-web:8080/api_jsonrpc.php 2>&1 | grep -q jsonrpc || pgrep zabbix_server >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      start_interval: 10s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  # Agente del propio lab: atiende los passive checks del host
+  # "Zabbix server" (su interfaz apunta al DNS zabbix-agent:10050).
+  zabbix-agent:
+    # Nota: agent2 no tiene repo "-alpine" en Docker Hub; el tag alpine
+    # vive en zabbix/zabbix-agent2.
+    image: zabbix/zabbix-agent2:alpine-7.4.13
+    container_name: zabbix-agent
+    restart: unless-stopped
+
+    environment:
+      ZBX_HOSTNAME: "Zabbix server"
+      # El entrypoint usa ZBX_SERVER_HOST tanto para checks activos como
+      # para el origen permitido de los pasivos. No agregar
+      # ZBX_PASSIVESERVERS con el mismo valor: duplica la entrada y agent2
+      # rechaza la config ("address specified more than once").
+      ZBX_SERVER_HOST: zabbix-server
+
+    depends_on:
+      - zabbix-server
+
+    networks:
+      - backend
+
+    healthcheck:
+      # agent.ping via embedded agent2; 30s interval.
+      test: ["CMD-SHELL", "zabbix_agent2 -t agent.ping 2>&1 | grep -q '1' || pgrep zabbix_agent2 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
     logging:
       driver: json-file
       options:
@@ -71,7 +126,7 @@ services:
 
 
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.6
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4.13
     container_name: zabbix-web
     restart: unless-stopped
 
@@ -96,6 +151,13 @@ services:
       - backend
       - frontend
 
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api_jsonrpc.php 2>&1 | grep -q jsonrpc || wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
     logging:
       driver: json-file
       options:
@@ -103,26 +165,74 @@ services:
         max-file: "5"
 
 
-  grafana:
-    image: grafana/grafana:11.6.1
-    container_name: grafana
+  nginx:
+    image: nginx:alpine
+    container_name: zbx-nginx
     restart: unless-stopped
 
-    env_file:
-      - .env
+    depends_on:
+      - zabbix-web
 
+    # Site identity comes from the environment (see .env.example).
+    # SERVER_NAME is per-site; CERT_DIR/ACME_WEBROOT defaults match the
+    # mounts below. Plain ${VAR} in the template: envsubst does not expand
+    # ${VAR:-default}, so defaults live here, not in the template file.
+    # NOTE: no env_file on purpose — only these three vars enter the
+    # container (values themselves come from the project .env / shell).
     environment:
-      TZ: ${TZ}
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_SERVER_ROOT_URL: http://192.0.2.11/grafana/
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      CERT_DIR: ${CERT_DIR:-/etc/nginx/certs}
+      ACME_WEBROOT: ${ACME_WEBROOT:-/var/www/certbot}
+
+    ports:
+      - "${HTTP_BIND_IP:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTPS_BIND_IP:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+      # Per-site binding via env (see docker/.env.example):
+      #   Phase 1 / lab: HTTP_BIND_IP=<new-IP> HTTP_PORT=<port> (e.g. HTTP-only without TLS)
+      #   Phase 2 / prod: HTTP_BIND_IP=<prod-IP> HTTP_PORT=80 HTTPS_PORT=443 + SERVER_NAME + TLS
 
     volumes:
-      - /opt/monitoring/data/grafana:/var/lib/grafana
+      # Generic template rendered by the nginx image entrypoint (envsubst)
+      # into /etc/nginx/conf.d/default.conf. No domain is hardcoded.
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${DATA_DIR:-/opt/monitoring/data}/certs:${CERT_DIR:-/etc/nginx/certs}:ro
+      - ${DATA_DIR:-/opt/monitoring/data}/certbot-webroot:${ACME_WEBROOT:-/var/www/certbot}:rw
 
-    expose:
-      - "3000"
+    networks:
+      - frontend
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  # Spike Fase 2 (lab-only, read-only): initMAX/zabbix-mcp-server v1.36.1.
+  # Imagen local construida desde clon pristino (ghcr.io deniega pull anonimo).
+  # Config con secretos en ./zabbix-mcp-config.toml (ignorado por git, mount ro).
+  zabbix-mcp:
+    image: lab/zabbix-mcp-server:1.36.1
+    container_name: zabbix-mcp
+    restart: unless-stopped
+
+    command: ["--config", "/etc/zabbix-mcp/config.toml", "--host", "0.0.0.0", "--port", "8080"]
+
+    depends_on:
+      - zabbix-web
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    volumes:
+      - ./zabbix-mcp-config.toml:/etc/zabbix-mcp/config.toml:ro
 
     networks:
       - backend
@@ -135,23 +245,32 @@ services:
         max-file: "5"
 
 
-  nginx:
-    image: nginx:alpine
-    container_name: monitoring-nginx
+  # Solo lab: docker compose --profile lab up -d
+  # Alimenta los hosts simulados (trapper) segun docker/simulator/scenarios.yml.
+  lab-simulator:
+    profiles:
+      - "lab"
+
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.simulator
+      network: host
+
+    image: lab/lab-simulator:latest
+    container_name: lab-simulator
     restart: unless-stopped
 
     depends_on:
-      - zabbix-web
-      - grafana
+      - zabbix-server
 
-    ports:
-      - "80:80"
+    environment:
+      ZABBIX_SERVER: zabbix-server
 
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./simulator/scenarios.yml:/etc/lab-sim/scenarios.yml:ro
 
     networks:
-      - frontend
+      - backend
 
     logging:
       driver: json-file
@@ -162,9 +281,17 @@ services:
 
 networks:
 
+  # Lab local: subredes explicitas para evitar colisiones con otros
+  # proyectos Docker y con redes corporativas (ver docs/instalacion.md).
   backend:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.28.90.0/24
 
+  # Gestionada por este compose (antes externa monitoring-net, hoy red frontend),
+  # asi el stack es autocontenido y funciona en cualquier host.
   frontend:
-    external: true
-    name: monitoring-net
+    ipam:
+      config:
+        - subnet: 172.28.91.0/24
