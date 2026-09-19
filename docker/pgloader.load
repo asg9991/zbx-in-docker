@@ -1,0 +1,18 @@
+# pgloader config for zbx-in-docker migration (MySQL 8.0 → Postgres 15)
+# Provenance: site-b-migration 7.0.29→7.4.13, validated against upstream database/postgresql/schema.sql
+# Source tuning: workers=4 concurrency=2 multiple readers per thread rows per range=50000 (site-a lab proven 437k rows ~14.5s)
+# Known FK handling: c_sysmaps_elements_2 on empty images table may fail during index creation — logged as WARNING, non-blocking;
+# refer to docs/migracion-site-b-config-only.md and runbook for manual FK recreation if needed.
+LOAD DATABASE
+  FROM mysql://pgloader:pgloader123@zabbix-mysql-test/zabbix
+  INTO postgresql://zabbix:test123@zabbix-pg-test/zabbix_test
+WITH include drop, create tables, create indexes, reset sequences,
+     workers = 4, concurrency = 2,
+     multiple readers per thread, rows per range = 50000
+CAST type datetime to timestamptz drop default drop not null using zero-dates-to-null,
+     type bigint to bigint drop default drop not null,
+     type tinyint to boolean drop default drop not null using tinyint-to-boolean
+-- Validation: compare information_schema.columns column_default vs database/postgresql/schema.sql (7.4.13 tarball)
+-- 63 columns with dropped DEFAULT expected via `drop default` in CAST; document any divergence.
+ALTER SCHEMA 'zabbix' RENAME TO 'public'
+;

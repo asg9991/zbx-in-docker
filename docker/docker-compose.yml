@@ -19,15 +19,20 @@ services:
 
     volumes:
       - ${DATA_DIR:-/opt/monitoring/data}/postgres:/var/lib/postgresql/data
+      # site-b migration: host backup staging for streamed dumps (gzip -t gate).
+      # Not required at runtime; present so `docker compose config` resolves DATA_DIR
+      # and documents the expected layout under /opt/monitoring/data on new VM.
+      - ${DATA_DIR:-/opt/monitoring/data}/bkp-pre-docker:/var/opt/bkp-pre-docker:ro
 
     networks:
       - backend
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
     logging:
       driver: json-file
@@ -68,6 +73,15 @@ services:
     volumes:
       - ../scripts:/usr/lib/zabbix/externalscripts:ro
 
+    healthcheck:
+      # site-b gate: API version probe once web is healthy; server auto-migrates 7000000→7040013.
+      test: ["CMD-SHELL", "wget -qO- http://zabbix-web:8080/api_jsonrpc.php 2>&1 | grep -q jsonrpc || pgrep zabbix_server >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      start_interval: 10s
+
     logging:
       driver: json-file
       options:
@@ -97,6 +111,14 @@ services:
 
     networks:
       - backend
+
+    healthcheck:
+      # site-b gate: agent.ping via embedded agent; 30s interval per spec.
+      test: ["CMD-SHELL", "zabbix_agent2 -t agent.ping 2>&1 | grep -q '1' || pgrep zabbix_agent2 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
 
     logging:
       driver: json-file
@@ -131,6 +153,13 @@ services:
       - backend
       - frontend
 
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api_jsonrpc.php 2>&1 | grep -q jsonrpc || wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
     logging:
       driver: json-file
       options:
@@ -158,8 +187,10 @@ services:
       ACME_WEBROOT: ${ACME_WEBROOT:-/var/www/certbot}
 
     ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
+      - "${HTTP_BIND_IP:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTPS_BIND_IP:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+      # Phase 1 (site-b): HTTP_BIND_IP=198.51.100.43 HTTP_PORT=14422 HTTPS_PORT=443
+      # Phase 2 (site-b): HTTP_BIND_IP=198.51.100.38 HTTP_PORT=80 HTTPS_PORT=443
 
     volumes:
       # Generic template rendered by the nginx image entrypoint (envsubst)
@@ -170,6 +201,13 @@ services:
 
     networks:
       - frontend
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
     logging:
       driver: json-file
