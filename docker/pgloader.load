@@ -1,10 +1,10 @@
 # pgloader config for zbx-in-docker migration (MySQL 8.0 → Postgres 15)
-# Provenance: site-b-migration 7.0.29→7.4.13, validated against upstream database/postgresql/schema.sql
+# Template for MySQL 8.0 -> Postgres 15 config-only migration. Adapt per-site (see docs/migracion-<cliente>-config-only.md). Validate against upstream database/postgresql/schema.sql
 # Source: zabbix_server.conf CacheSize=1G, StartSNMPPollers=5, Timeout=4 — see .env.example for tuning provenance
 # Disk: VM expanded to 248G LV (250G thin) confirmed via lsblk — DATA_DIR=/opt/monitoring/data
-# Tuning: workers=4 concurrency=2 multiple readers per thread rows per range=50000 (site-a lab proven 437k rows ~14.5s)
+# Tuning: workers=4 concurrency=2 multiple readers per thread rows per range=50000 (lab validated ~400k rows in seconds)
 # Known FK handling: c_sysmaps_elements_2 on empty images table may fail during index creation — logged as WARNING, non-blocking;
-# refer to docs/migracion-site-b-config-only.md and runbook for manual FK recreation if needed.
+# For known FK on empty images table, recreate manually post-load if needed (see per-client runbook).
 LOAD DATABASE
   FROM mysql://pgloader:pgloader123@zabbix-mysql-test/zabbix
   INTO postgresql://zabbix:test123@zabbix-pg-test/zabbix_test

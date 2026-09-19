@@ -19,9 +19,7 @@ services:
 
     volumes:
       - ${DATA_DIR:-/opt/monitoring/data}/postgres:/var/lib/postgresql/data
-      # site-b migration: host backup staging for streamed dumps (gzip -t gate).
-      # Not required at runtime; present so `docker compose config` resolves DATA_DIR
-      # and documents the expected layout under /opt/monitoring/data on new VM.
+      # Backup staging for streamed dumps (gzip -t gate). Optional at runtime; documents expected layout under ${DATA_DIR}/bkp-pre-docker.
       - ${DATA_DIR:-/opt/monitoring/data}/bkp-pre-docker:/var/opt/bkp-pre-docker:ro
 
     networks:
@@ -74,7 +72,7 @@ services:
       - ../scripts:/usr/lib/zabbix/externalscripts:ro
 
     healthcheck:
-      # site-b gate: API version probe once web is healthy; server auto-migrates 7000000→7040013.
+      # API version probe once web is healthy; server auto-migrates schema on first start (major upgrades traverse multiple patch levels).
       test: ["CMD-SHELL", "wget -qO- http://zabbix-web:8080/api_jsonrpc.php 2>&1 | grep -q jsonrpc || pgrep zabbix_server >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
@@ -113,7 +111,7 @@ services:
       - backend
 
     healthcheck:
-      # site-b gate: agent.ping via embedded agent; 30s interval per spec.
+      # agent.ping via embedded agent2; 30s interval.
       test: ["CMD-SHELL", "zabbix_agent2 -t agent.ping 2>&1 | grep -q '1' || pgrep zabbix_agent2 >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
@@ -189,8 +187,9 @@ services:
     ports:
       - "${HTTP_BIND_IP:-0.0.0.0}:${HTTP_PORT:-80}:80"
       - "${HTTPS_BIND_IP:-0.0.0.0}:${HTTPS_PORT:-443}:443"
-      # Phase 1 (site-b): HTTP_BIND_IP=198.51.100.43 HTTP_PORT=14422 HTTPS_PORT=443
-      # Phase 2 (site-b): HTTP_BIND_IP=198.51.100.38 HTTP_PORT=80 HTTPS_PORT=443
+      # Per-site binding via env (see docker/.env.example):
+      #   Phase 1 / lab: HTTP_BIND_IP=<new-IP> HTTP_PORT=<port> (e.g. HTTP-only without TLS)
+      #   Phase 2 / prod: HTTP_BIND_IP=<prod-IP> HTTP_PORT=80 HTTPS_PORT=443 + SERVER_NAME + TLS
 
     volumes:
       # Generic template rendered by the nginx image entrypoint (envsubst)

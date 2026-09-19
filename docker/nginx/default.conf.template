@@ -9,7 +9,7 @@
 # so defaults live in docker-compose.yml `environment:`):
 #   SERVER_NAME   public DNS name of this site, e.g. zabbix.example.com.
 #                 Per-site: each deployment sets its own value, no default
-#                 domain is hardcoded here. site-b Phase 1: zabbix.site-b (HTTP 14422 on 198.51.100.43)
+#                 domain is hardcoded here. SERVER_NAME and ports come from env (see docker/.env.example). No domain hardcoded here.
 #   CERT_DIR      directory holding fullchain.pem + privkey.pem (mounted :ro).
 #                 Host path is ${DATA_DIR}/certs (default /opt/monitoring/data/certs).
 #   ACME_WEBROOT  webroot directory for HTTP-01 challenges (mounted :rw).
