@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly Zabbix config backup (%i)
+
+[Timer]
+OnCalendar=monthly
+Persistent=true
+Unit=zbx-backup@%i.service
+
+[Install]
+WantedBy=timers.target

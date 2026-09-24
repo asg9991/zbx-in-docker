@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly config-only Zabbix backup (%i)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=zabbix
+Environment=SITE=%i
+ExecStart=/opt/monitoring/zbx-in-docker/scripts/backup-config-monthly.sh

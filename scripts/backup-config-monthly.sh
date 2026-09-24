@@ -159,6 +159,12 @@ fi
 # Copia mensual YYYYMM (idempotente dentro del mes) + retención local.
 cp -p "$WORK" "$MONTHLY"
 echo "OK copia mensual: $MONTHLY"
+# Sello de éxito: fecha UTC + archivo + tamaño. Es lo que vigila el
+# chequeo mensual (ver docs/recupero.md §5): si el sello tiene más de
+# 35 días, el respaldo no está corriendo.
+printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$MONTHLY" "$(stat -c %s "$MONTHLY")" \
+  > "$BKP_DIR/.last-backup-$SITE.ok"
+echo "OK sello: $BKP_DIR/.last-backup-$SITE.ok"
 # Poda: conserva las N copias rotativas más nuevas; la mensual nunca se poda.
 # shellcheck disable=SC2012
 ls -1t "$BKP_DIR"/zbx-config-"$SITE"-*.sql.gz 2>/dev/null \

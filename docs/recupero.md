@@ -127,10 +127,40 @@ SITE=site-a scripts/backup-config-monthly.sh
 ```
 
 El script excluye siempre las 7 tablas de historial/tendencias
-(`history*`, `trends*`) en MySQL, o vuelca la base de configuración en
-Postgres; el resultado pesa pocos MB comprimido. Conserva 3 copias
-rotativas en el host más una copia mensual `YYYYMM`, verifica integridad
-con `gzip -t` y valida conteos de `hosts`/`items`.
+(`history*`, `trends*`): en MySQL con `--ignore-table`, en Postgres con
+`--exclude-table-data` (conserva el schema, omite las filas). El resultado
+pesa pocos MB comprimido. Conserva 3 copias rotativas en el host más una
+copia mensual `YYYYMM`, verifica integridad con `gzip -t`, valida conteos
+de `hosts`/`items` y deja el sello `.last-backup-<SITE>.ok` con fecha UTC.
+
+### Ejecución automática y chequeo (systemd)
+
+El respaldo corre solo con un timer por sitio (unidad instanciada):
+
+```bash
+# Instalación (una vez por host, con sudo):
+sudo cp systemd/zbx-backup@.service systemd/zbx-backup@.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now zbx-backup@site-a.timer   # o @site-b en site-b
+
+# Chequeo mensual (sin sudo):
+systemctl list-timers 'zbx-backup@*' --all
+cat /opt/monitoring/data/bkp-pre-docker/.last-backup-site-a.ok
+journalctl -u 'zbx-backup@site-a.service' --since '35 days ago' | tail -5
+ls -lh /opt/monitoring/data/bkp-pre-docker/zbx-config-site-a-$(date +%Y%m).sql.gz
+```
+
+Si el sello tiene más de 35 días o el timer figura fallido, el respaldo no
+está corriendo. El aviso automático (trapper + trigger → Telegram) se
+documenta aparte cuando se creen los ítems en el frontend.
+
+### Archivos por cliente
+
+Lo genérico vive en `docker/`, `scripts/`, `systemd/` y `docs/`. Lo de cada
+cliente vive en `overlays/<cliente>/` (p. ej.
+`overlays/site-b/verify-site-b-migration.sh`) más su `.env`, certificados y
+volcados en el host, fuera de git. Nada con nombre de cliente va en
+`scripts/` raíz.
 
 La copia mensual se sube a Drive a
 `projects/CLIENTES/<SITE>/zbx-backups/YYYYMM/` (manual o con
