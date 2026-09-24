@@ -151,8 +151,14 @@ ls -lh /opt/monitoring/data/bkp-pre-docker/zbx-config-site-a-$(date +%Y%m).sql.g
 ```
 
 Si el sello tiene más de 35 días o el timer figura fallido, el respaldo no
-está corriendo. El aviso automático (trapper + trigger → Telegram) se
-documenta aparte cuando se creen los ítems en el frontend.
+está corriendo. El aviso automático usa dos ítems trapper en el host
+`Zabbix server` (`zbx.backup.status`, `zbx.backup.age_days`) más el trigger
+`Backup mensual desactualizado` (`nodata(...,37d)`, Warning) hacia el
+Telegram existente; el script los alimenta vía `zabbix_sender` del
+contenedor agent2 en cada corrida. Gotcha: tras crear ítems por API, el
+server puede tardar en verlos en caché (`cannot retrieve key ... from
+configuration cache`) — `zabbix_server -R config_cache_reload`, y si
+persiste, `compose restart zabbix-server`.
 
 ### Archivos por cliente
 
