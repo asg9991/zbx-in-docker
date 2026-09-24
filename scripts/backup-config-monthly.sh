@@ -25,10 +25,13 @@
 #                   MySQL (por defecto: ~/.my.cnf). Nunca se muestra su
 #                   contenido ni se pasa la clave por línea de comandos.
 #   MYSQL_DB        Base MySQL origen (por defecto: zabbix).
-#   PGUSER / PGDATABASE
-#                   Usuario y base Postgres (por defecto: zabbix / zabbix).
-#                   La clave viaja solo por entorno PG* o ~/.pgpass, nunca
-#                   por línea de comandos ni por pantalla.
+#   PGUSER / PGDATABASE / PGCONTAINER
+#                   Usuario, base y contenedor Postgres (por defecto:
+#                   zabbix / zabbix / zabbix-postgres). Se accede vía
+#                   `docker exec` al contenedor (postgres no publica
+#                   puertos al host), así no hace falta clave: rige el
+#                   pg_hba del contenedor. Nunca por línea de comandos
+#                   ni por pantalla.
 #   RETENTION_LOCAL Copias rotativas a conservar en disco, sin contar la
 #                   copia mensual YYYYMM (por defecto: 3).
 #   COMPOSE_FILE    Compose a inspeccionar en modo auto
@@ -48,6 +51,7 @@ MYSQL_CNF="${MYSQL_CNF:-$HOME/.my.cnf}"
 MYSQL_DB="${MYSQL_DB:-zabbix}"
 PGUSER="${PGUSER:-zabbix}"
 PGDATABASE="${PGDATABASE:-zabbix}"
+PGCONTAINER="${PGCONTAINER:-zabbix-postgres}"
 RETENTION_LOCAL="${RETENTION_LOCAL:-3}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker/docker-compose.yml}"
 
@@ -69,7 +73,7 @@ detect_db_type() {
     echo "$DB_TYPE"
     return
   fi
-  if docker compose -f "$COMPOSE_FILE" exec -T postgres \
+  if docker exec "$PGCONTAINER" \
       pg_isready -U "$PGUSER" >/dev/null 2>&1; then
     echo "postgres"
   else
@@ -112,7 +116,7 @@ if [[ "$ENGINE" == "mysql" ]]; then
       --no-create-info "${IGNORES[@]}" "$MYSQL_DB"
   } | gzip > "$WORK"
 else
-  # Clave solo vía entorno PG* o ~/.pgpass; nada de secretos en CLI ni en logs.
+  # Vía docker exec al contenedor (sin publicar puertos, sin clave en CLI).
   # --exclude-table-data: conserva el CREATE TABLE pero omite las filas
   # (equivalente al --ignore-table de datos de MySQL en un solo volcado).
   # Validado en site-a 2026-09-19: DB 3313 MB -> 6.9M gz en 2.3s.
@@ -120,7 +124,7 @@ else
   for t in $HISTORY_TABLES; do
     EXCLUDES+=(--exclude-table-data="$t")
   done
-  pg_dump -h localhost -U "$PGUSER" -d "$PGDATABASE" \
+  docker exec "$PGCONTAINER" pg_dump -U "$PGUSER" -d "$PGDATABASE" \
     --no-owner --no-privileges "${EXCLUDES[@]}" | gzip > "$WORK"
 fi
 
@@ -138,9 +142,9 @@ if [[ "$ENGINE" == "mysql" ]]; then
   ITEMS="$(mysql --defaults-extra-file="$MYSQL_CNF" -NBe \
     "SELECT COUNT(*) FROM items;" "$MYSQL_DB")"
 else
-  HOSTS="$(psql -h localhost -U "$PGUSER" -d "$PGDATABASE" -tAc \
+  HOSTS="$(docker exec "$PGCONTAINER" psql -U "$PGUSER" -d "$PGDATABASE" -tAc \
     "SELECT COUNT(*) FROM hosts;")"
-  ITEMS="$(psql -h localhost -U "$PGUSER" -d "$PGDATABASE" -tAc \
+  ITEMS="$(docker exec "$PGCONTAINER" psql -U "$PGUSER" -d "$PGDATABASE" -tAc \
     "SELECT COUNT(*) FROM items;")"
 fi
 echo "Conteos en origen: hosts=$HOSTS items=$ITEMS"

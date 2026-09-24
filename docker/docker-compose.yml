@@ -218,7 +218,12 @@ services:
   # Spike Fase 2 (lab-only, read-only): initMAX/zabbix-mcp-server v1.36.1.
   # Imagen local construida desde clon pristino (ghcr.io deniega pull anonimo).
   # Config con secretos en ./zabbix-mcp-config.toml (ignorado por git, mount ro).
+  # Perfil mcp: solo lab con `docker compose --profile mcp up -d`.
+  # En prod el perfil queda inactivo y `up -d` lo omite (la imagen no existe
+  # en registry y el pull fallaría).
   zabbix-mcp:
+    profiles:
+      - "mcp"
     image: lab/zabbix-mcp-server:1.36.1
     container_name: zabbix-mcp
     restart: unless-stopped
