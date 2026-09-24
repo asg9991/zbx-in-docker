@@ -202,7 +202,10 @@ services:
       - frontend
 
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      # TLS sites answer 301 on :80 and serve :443 with a site cert, so plain
+      # http alone always fails there; HTTP-only sites have no :443 instead.
+      # Try HTTPS without cert verify first, fall back to plain HTTP.
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1:443/ >/dev/null 2>&1 || wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
