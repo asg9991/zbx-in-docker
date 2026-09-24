@@ -52,6 +52,7 @@ MYSQL_DB="${MYSQL_DB:-zabbix}"
 PGUSER="${PGUSER:-zabbix}"
 PGDATABASE="${PGDATABASE:-zabbix}"
 PGCONTAINER="${PGCONTAINER:-zabbix-postgres}"
+AGENTCONTAINER="${AGENTCONTAINER:-zabbix-agent}"
 RETENTION_LOCAL="${RETENTION_LOCAL:-3}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker/docker-compose.yml}"
 
@@ -168,14 +169,17 @@ echo "OK sello: $BKP_DIR/.last-backup-$SITE.ok"
 
 # Reporte al propio Zabbix (trapper en el host "Zabbix server"): estado 1
 # y antigüedad 0 días. El trigger `nodata(...,37d)` avisa si el respaldo
-# deja de correr. Si el envío falla, no rompe el backup.
-if command -v zabbix_sender >/dev/null 2>&1; then
-  zabbix_sender -z 127.0.0.1 -p 10051 -s "Zabbix server" \
-    -k zbx.backup.status -o 1 >/dev/null 2>&1 \
+# deja de correr. Se envía con el zabbix_sender del contenedor agent2
+# (en el host no hay sender instalado). Si el envío falla, no rompe el backup.
+if docker exec "$AGENTCONTAINER" true 2>/dev/null; then
+  docker exec "$AGENTCONTAINER" zabbix_sender -z zabbix-server -p 10051 \
+    -s "Zabbix server" -k zbx.backup.status -o 1 >/dev/null 2>&1 \
     || echo "AVISO: no se pudo reportar zbx.backup.status"
-  zabbix_sender -z 127.0.0.1 -p 10051 -s "Zabbix server" \
-    -k zbx.backup.age_days -o 0 >/dev/null 2>&1 \
+  docker exec "$AGENTCONTAINER" zabbix_sender -z zabbix-server -p 10051 \
+    -s "Zabbix server" -k zbx.backup.age_days -o 0 >/dev/null 2>&1 \
     || echo "AVISO: no se pudo reportar zbx.backup.age_days"
+else
+  echo "AVISO: contenedor $AGENTCONTAINER no disponible, sin reporte a Zabbix"
 fi
 # Poda: conserva las N copias rotativas más nuevas; la mensual nunca se poda.
 # shellcheck disable=SC2012
