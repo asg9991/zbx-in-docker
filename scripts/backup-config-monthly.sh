@@ -165,6 +165,18 @@ echo "OK copia mensual: $MONTHLY"
 printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$MONTHLY" "$(stat -c %s "$MONTHLY")" \
   > "$BKP_DIR/.last-backup-$SITE.ok"
 echo "OK sello: $BKP_DIR/.last-backup-$SITE.ok"
+
+# Reporte al propio Zabbix (trapper en el host "Zabbix server"): estado 1
+# y antigüedad 0 días. El trigger `nodata(...,37d)` avisa si el respaldo
+# deja de correr. Si el envío falla, no rompe el backup.
+if command -v zabbix_sender >/dev/null 2>&1; then
+  zabbix_sender -z 127.0.0.1 -p 10051 -s "Zabbix server" \
+    -k zbx.backup.status -o 1 >/dev/null 2>&1 \
+    || echo "AVISO: no se pudo reportar zbx.backup.status"
+  zabbix_sender -z 127.0.0.1 -p 10051 -s "Zabbix server" \
+    -k zbx.backup.age_days -o 0 >/dev/null 2>&1 \
+    || echo "AVISO: no se pudo reportar zbx.backup.age_days"
+fi
 # Poda: conserva las N copias rotativas más nuevas; la mensual nunca se poda.
 # shellcheck disable=SC2012
 ls -1t "$BKP_DIR"/zbx-config-"$SITE"-*.sql.gz 2>/dev/null \
