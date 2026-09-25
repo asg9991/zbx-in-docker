@@ -1,0 +1,11 @@
+# Sitio "lab": HTTP-only, sin TLS.
+# El compose base (docker-compose.yml) es el generico con TLS que vive en
+# GitHub; cada sitio particular se define por override. Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.lab.yml --profile mcp --profile lab up -d
+services:
+  nginx:
+    # !override reemplaza (no mergea): se publica solo el 80 y se monta
+    # unicamente el vhost http-only. OJO: !reset en compose v5 vacia la
+    # lista, por eso se usa !override con el valor al lado.
+    ports: !override ["80:80"]
+    volumes: !override ["./nginx/examples/http-only-lab.conf.example:/etc/nginx/conf.d/default.conf:ro"]
