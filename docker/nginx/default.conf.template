@@ -62,4 +62,9 @@ server {
         proxy_hide_header Server;
         proxy_hide_header X-Powered-By;
     }
+
+    # Legacy path: native installs served under /zabbix/ (old bookmarks).
+    location ~ ^/zabbix(/.*)?$ {
+        return 301 $scheme://$host$1;
+    }
 }
