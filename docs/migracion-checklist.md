@@ -80,23 +80,24 @@ migración por cerrada.
   PUT → verificar conteo de widgets POR PÁGINA (no solo total). Los widgets
   vacíos (solo `reference`) pueden caerse en silencio en el round-trip.
 
-## 9. Gates site-b — site-b-migration (config-only, VM nueva 198.51.100.43:14422 -> 198.51.100.38)
+## 9. Gates site-b — site-b-migration (config-only, corte 2026-09-28 a 198.51.100.38)
 
 > site-a es referencia de metodo lab-validada solamente; estos gates se ejecutan
 > exclusivamente sobre dumps y stack de site-b.
 
-- Conteos post-migracion (tras `docker compose up -d` y auto-migracion 7000000->7040013):
-  `hosts` habilitados: **32** (`SELECT count(*) FROM hosts WHERE status=0 AND flags=0`)
-  — total con templates: **429** (`SELECT count(*) FROM hosts`) — `templates`: **349** (`status=3`)
-  — `items`: **26529** — `triggers`: **11086** — `discovery rules`: **47** (`status=0 AND flags=2`)
-  — `tables`: **207** (`information_schema.tables WHERE table_schema='public'`).
+- Conteos post-migracion (tras `docker compose up -d` y auto-migracion 7000000->7040011):
+  corte 2026-09-28: `hosts` habilitados **26**, `templates` **349**,
+  `items` **24125**, `triggers` **9878**, `tables` **207**,
+  `dbversion.mandatory` **7040000**. (Baseline previo: 32/26529/11086 por
+  hosts dados de baja por el equipo — el gate compara contra fresh dump,
+  no contra baseline viejo.)
   Cualquier delta sin explicacion documentada (alta/baja del equipo) => Rollback y comparar contra fresh dump.
 - `Administration → Queue`: **cero items delayed >30 segundos** tras 5 min de up; preprocessing workers no saturados; sin `temporarily disabling` en `docker logs zabbix-server` (gate: `grep -c "temporarily disabling" == 0`).
-- `docker compose config` gate (pre-corte y post-corte): `docker compose -f docker/docker-compose.yml config` exit 0, sin warnings de variables indefinidas, imagenes resuelven a `7.4.13`/`postgres:15`, puertos via `HTTP_BIND_IP`/`HTTPS_BIND_IP` (Fase 1 `198.51.100.43:14422`, Fase 2 `198.51.100.38:80/443`).
+- `docker compose config` gate (pre-corte y post-corte): `docker compose -f docker/docker-compose.yml config` exit 0, sin warnings de variables indefinidas, imagenes resuelven a `7.4.13`/`postgres:15`, puertos via `HTTP_BIND_IP`/`HTTPS_BIND_IP` (SSH siempre `:14422`; HTTP Fase 1 `:8080`, Fase 2 `:80/443`).
 - `name_upper` tras altas por API: `SELECT host FROM hosts WHERE name_upper='';` debe dar 0 filas. Si no, `UPDATE hosts SET name_upper=upper(name) WHERE name_upper='';` antes de dar por cerrada la migracion (rompe busqueda si queda vacio).
-- Repoint `Zabbix server`: `UPDATE interface SET dns='zabbix-agent', useip=0 WHERE hostid=(SELECT hostid FROM hosts WHERE host='Zabbix server') AND type=1;` — en ~2 min `available=1`, verificar con `SELECT host, available FROM hosts WHERE host='Zabbix server'`.
-- API gate: `curl .../api_jsonrpc.php -d '{"method":"apiinfo.version"}'` -> `7.4.13`; `dbversion.mandatory` -> `7040013`; `gzip -t` OK en ambos dumps antes de pgloader; `c_sysmaps_elements_2` como unico error FK aceptado.
+- Repoint `Zabbix server`: `UPDATE interface SET dns='zabbix-agent', useip=0 WHERE hostid=(SELECT hostid FROM hosts WHERE host='Zabbix server') AND type=1;` — en ~2 min verificar con `SELECT i.available FROM interface i JOIN hosts h ON h.hostid=i.hostid WHERE h.host='Zabbix server' AND i.type=1;` (-> 1). Ojo 7.4: `available` vive en `interface`, no en `hosts`.
+- API gate: `curl .../api_jsonrpc.php -d '{"method":"apiinfo.version"}'` -> `7.4.13`; `dbversion.mandatory` -> `7040000`; `gzip -t` OK en ambos dumps antes de pgloader; `c_sysmaps_elements_2` como unico error FK aceptado.
 
 ## 10. Validacion pre-corte — lab dry-run obligatorio
 
-- Lab dry-run verde antes de ventana site-b: stremear dumps frescos de site-b por SSH :14422 al lab → MySQL temporal `mysql:8.0 --default-authentication-plugin=mysql_native_password` → pgloader `workers=4 concurrency=2` → `zabbix-server:7.4.13` → capturar `docker logs zabbix-server | grep -i "upgrade\|database"` (7000000->7040013) y conteos 207/32/349/26529/11086/47. Gate: 0 errores pgloader salvo FK conocido, API 7.4.13, Queue limpia. Sin dry-run verde no se corta.
+- Lab dry-run verde antes de ventana site-b: stremear dumps frescos de site-b por SSH :14422 al lab → MySQL temporal `mysql:8.0 --default-authentication-plugin=mysql_native_password` → pgloader `workers=4 concurrency=2` → `zabbix-server:7.4.13` → capturar `docker logs zabbix-server | grep -i "upgrade\|database"` (7000000->7040011) y conteos contra fresh dump (corte 2026-09-28: 207 tablas, 26 hosts, 349 templates, 24125 items, 9878 triggers). Gate: 0 errores pgloader salvo FK conocido, API 7.4.13, Queue limpia. Sin dry-run verde no se corta.

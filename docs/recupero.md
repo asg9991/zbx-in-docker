@@ -179,7 +179,7 @@ configuración, no las series históricas.
 | Sitio | Estado | `SERVER_NAME` (ejemplo) | `DATA_DIR` | Respaldo | Puertos / TLS |
 |---|---|---|---|---|---|
 | site-a | Migrado | `zabbix.example.com` | `/opt/monitoring/data` | `/opt/monitoring/bkp-pre-docker` | Producción en `80/443` con TLS |
-| site-b | Pendiente (Fase 1 / Fase 2) | `<SERVER_NAME>` de site-b | `/opt/monitoring/data` (LV de 248G / thin de 250G) | `/opt/monitoring/data/bkp-pre-docker` | Fase 1: `HTTP_BIND_IP=<IP-FASE1>:14422` por HTTP sin TLS; Fase 2: `<IP-PROD>:80/443` + Cloudflare con TLS |
+| site-b | Migrado 2026-09-28 | `zabbix.example.org` | `/opt/monitoring/data` | `/opt/monitoring/data/bkp-pre-docker` | Corte completo a `198.51.100.38` (réplica de privadas `.113`/`198.51.100.32`); origen HTTP vía Cloudflare Flexible hasta Fase2 TLS |
 
 Notas:
 
