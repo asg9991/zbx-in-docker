@@ -101,3 +101,34 @@ migración por cerrada.
 ## 10. Validacion pre-corte — lab dry-run obligatorio
 
 - Lab dry-run verde antes de ventana site-b: stremear dumps frescos de site-b por SSH :14422 al lab → MySQL temporal `mysql:8.0 --default-authentication-plugin=mysql_native_password` → pgloader `workers=4 concurrency=2` → `zabbix-server:7.4.13` → capturar `docker logs zabbix-server | grep -i "upgrade\|database"` (7000000->7040011) y conteos contra fresh dump (corte 2026-09-28: 207 tablas, 26 hosts, 349 templates, 24125 items, 9878 triggers). Gate: 0 errores pgloader salvo FK conocido, API 7.4.13, Queue limpia. Sin dry-run verde no se corta.
+
+## 11. Triggers pgloader: la cola `changelog` (incidente site-a/site-b 2026-09-30, NO trasladar)
+
+- pgloader trae datos pero **suelta triggers y funciones**: en site-a faltaron los 65
+  triggers no-internos + 64 funciones (`SELECT count(*) FROM pg_trigger WHERE NOT
+  tgisinternal` → 0; en stock/lab → 65). Comparar contra
+  `create.sql.gz` de la imagen (`zabbix/zabbix-server-pgsql:alpine-7.4.13`).
+- 63 de esos triggers NO son auditoría decorativa: escriben en la tabla
+  `changelog` (`INSERT INTO changelog (object,objectid,operation,clock)`), que es
+  **la cola por la que el syncer se entera de altas/cambios** (items→objeto 3,
+  hosts→1, triggers→5, etc.). Los 2 restantes (`hosts_name_upper_*`) mantienen
+  `hosts.name_upper` (ver §7/§9: búsquedas rotas si queda vacío).
+- Sin triggers: la fila existe en DB (la API la lee perfecto, todo "se ve bien"),
+  pero `changelog` queda vacío → el syncer nunca la carga en cache → el
+  scheduler nunca la encola → el poller jamás la intenta. Síntoma exacto:
+  `lastclock=0`, `state=0`, `error=""` eternos; `execute-now` muere con
+  `cannot perform check now for itemid [X]: item is not in cache`; ni reload ni
+  restart lo levantan. En site-a/site-b dockerizados nada creado por ~2 días fue
+  agendado (descubrimientos, prototipos, items fijos, hasta un `agent.ping`
+  canario), con pollers idle y cola en cero.
+- Gate post-migración obligatorio (antes de dar por cerrada):
+  1. `SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal;` → **65**.
+     Si da 0/corto: replay DDL stock (`CREATE FUNCTION public.changelog_*()` +
+     `CREATE TRIGGER *_insert/_update/_delete`) en ventana y re-verificar conteo.
+  2. Smoke test canario: crear 1 item trivial por API → `SELECT * FROM changelog
+     ORDER BY clock DESC LIMIT 3;` debe mostrar su fila en segundos → esperar 2
+     ciclos → `lastclock>0` → borrar el item. Sin fila en changelog, no cerrar.
+- Si ya se operó sin triggers (caso site-a/site-b): las entidades creadas en el
+  hueco nunca generaron changelog → tras el replay, hacer UN
+  `config_cache_reload` (o restart en ventana) para carga completa y re-verificar
+  con canario.
