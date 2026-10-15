@@ -1015,6 +1015,8 @@ zabbix_export:
                 - uuid: 8fda0f2b5baf46319f593a4d8e75e5d1
                   expression: 'last(/OLT ZTE C320/ifOperStatus.[{#SNMPINDEX}])<>1'
                   name: 'Interface Down'
+                  event_name: 'Interface Down: {#SNMPVALUE} en {HOST.NAME}'
+                  description: 'OLT ZTE C320 - OperStatus distinto de up(1). Referencia conocida: Fibra DATA ifIndex 285281800 (ifDescr/ifAlias=Fibra DATA). Nota: el alias/descr puede venir vacio en algunos puertos; el event_name usa ITEM.NAME y HOST.NAME para identificar la interfaz.'
                   priority: HIGH
         - uuid: 349c8d908bf845a6b7d14088b36dfdd9
           name: 'ONU Registradas'
