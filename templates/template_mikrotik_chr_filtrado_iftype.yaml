@@ -126,8 +126,10 @@ zabbix_export:
         - uuid: 4c997484919c4fd1bd63989c46e9de5b
           name: 'Mikrotik: SNMP walk network interfaces'
           type: SNMP_AGENT
-          snmp_oid: 'walk[1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10]'
+          snmp_oid: 'walk[1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3]'
           key: net.if.walk
+          delay: 5m
+          timeout: 60s
           history: '0'
           value_type: TEXT
           description: 'Discovering interfaces from IF-MIB.'
@@ -139,6 +141,7 @@ zabbix_export:
           type: SNMP_AGENT
           snmp_oid: 'walk[1.3.6.1.4.1.14988.1.1.14.1.1.2,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.2.2.1.7,1.3.6.1.4.1.14988.1.1.16.1.1.2,1.3.6.1.4.1.14988.1.1.16.1.1.4,1.3.6.1.4.1.14988.1.1.16.1.1.3,1.3.6.1.4.1.14988.1.1.16.1.1.7,1.3.6.1.4.1.14988.1.1.1.3.1.4,1.3.6.1.4.1.14988.1.1.1.3.1.8,1.3.6.1.4.1.14988.1.1.1.3.1.9,1.3.6.1.4.1.14988.1.1.1.3.1.6,1.3.6.1.4.1.14988.1.1.1.3.1.11,1.3.6.1.4.1.14988.1.1.1.7.1.5,1.3.6.1.4.1.14988.1.1.1.7.1.4,1.3.6.1.4.1.14988.1.1.1.7.1.2,1.3.6.1.4.1.14988.1.1.1.7.1.3]'
           key: net.if.wireless.walk
+          status: DISABLED
           history: '0'
           value_type: TEXT
           tags:
@@ -1258,23 +1261,19 @@ zabbix_export:
           item_prototypes:
             - uuid: a6b014ed1f0f48c98cfeafabeccf9665
               name: 'Interface {#IFNAME}({#IFALIAS}): Bits received'
-              type: DEPENDENT
+              type: SNMP_AGENT
               key: 'net.if.in[ifHCInOctets.{#SNMPINDEX}]'
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}'
+              delay: 1m
               units: bps
               description: |
                 MIB: IF-MIB
                 The total number of octets received on the interface, including framing characters. This object is a 64-bit version of ifInOctets. Discontinuities in the value of this counter can occur at re-initialization of the management system, and at other times as indicated by the value of ifCounterDiscontinuityTime.
               preprocessing:
-                - type: SNMP_WALK_VALUE
-                  parameters:
-                    - '1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}'
-                    - '0'
                 - type: CHANGE_PER_SECOND
                 - type: MULTIPLIER
                   parameters:
                     - '8'
-              master_item:
-                key: net.if.walk
               tags:
                 - tag: component
                   value: network
@@ -1284,23 +1283,19 @@ zabbix_export:
                   value: '{#IFNAME}'
             - uuid: cfbb59a7b4d449949291e69bd4064694
               name: 'Interface {#IFNAME}({#IFALIAS}): Bits sent'
-              type: DEPENDENT
+              type: SNMP_AGENT
               key: 'net.if.out[ifHCOutOctets.{#SNMPINDEX}]'
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}'
+              delay: 1m
               units: bps
               description: |
                 MIB: IF-MIB
                 The total number of octets transmitted out of the interface, including framing characters. This object is a 64-bit version of ifOutOctets.Discontinuities in the value of this counter can occur at re-initialization of the management system, and at other times as indicated by the value of ifCounterDiscontinuityTime.
               preprocessing:
-                - type: SNMP_WALK_VALUE
-                  parameters:
-                    - '1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}'
-                    - '0'
                 - type: CHANGE_PER_SECOND
                 - type: MULTIPLIER
                   parameters:
                     - '8'
-              master_item:
-                key: net.if.walk
               tags:
                 - tag: component
                   value: network
@@ -1310,8 +1305,10 @@ zabbix_export:
                   value: '{#IFNAME}'
             - uuid: 0775f53e9ca04323bf63996f249e2fe0
               name: 'Interface {#IFNAME}({#IFALIAS}): Operational status'
-              type: DEPENDENT
+              type: SNMP_AGENT
               key: 'net.if.status[ifOperStatus.{#SNMPINDEX}]'
+              snmp_oid: '1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}'
+              delay: 1m
               trends: '0'
               description: |
                 MIB: IF-MIB
@@ -1325,12 +1322,6 @@ zabbix_export:
               valuemap:
                 name: 'IF-MIB::ifOperStatus'
               preprocessing:
-                - type: SNMP_WALK_VALUE
-                  parameters:
-                    - '1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}'
-                    - '0'
-              master_item:
-                key: net.if.walk
               tags:
                 - tag: component
                   value: network
@@ -1359,8 +1350,10 @@ zabbix_export:
                       value: availability
             - uuid: 91d25d7568b74fe6a64b7d468b80980f
               name: 'Interface {#IFNAME}({#IFALIAS}): Interface type'
-              type: DEPENDENT
+              type: SNMP_AGENT
               key: 'net.if.type[ifType.{#SNMPINDEX}]'
+              snmp_oid: '1.3.6.1.2.1.2.2.1.3.{#SNMPINDEX}'
+              delay: 1m
               trends: '0'
               description: |
                 MIB: IF-MIB
@@ -1370,15 +1363,9 @@ zabbix_export:
               valuemap:
                 name: 'IF-MIB::ifType'
               preprocessing:
-                - type: SNMP_WALK_VALUE
-                  parameters:
-                    - '1.3.6.1.2.1.2.2.1.3.{#SNMPINDEX}'
-                    - '0'
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
                     - 1d
-              master_item:
-                key: net.if.walk
               tags:
                 - tag: component
                   value: network

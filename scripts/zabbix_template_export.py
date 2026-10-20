@@ -34,7 +34,7 @@ API_TYPES = {
     19: "HTTP_AGENT", 20: "SNMP_AGENT", 21: "SCRIPT", 22: "BROWSER",
 }
 VALUE_TYPES = {
-    0: "FLOAT", 1: "CHARACTER", 2: "LOG", 3: "UNSIGNED", 4: "TEXT", 5: "BINARY",
+    0: "FLOAT", 1: "CHAR", 2: "LOG", 3: "UNSIGNED", 4: "TEXT", 5: "BINARY",
 }
 STATUS = {0: "enabled", 1: "DISABLED"}
 # Zabbix 7.4 preprocessing type codes. Verified empirically against the live
@@ -94,8 +94,11 @@ def yaml_scalar(value):
         return "''"
     if "\n" in text:
         return "'" + text.replace("'", "''") + "'"
+    # Comillas donde el valor tenga caracteres significativos de YAML,
+    # para igualar el estilo de los exports del frontend.
     needs_quote = (
-        text[0] in "!&*?|>%@`{}[],#\"' "
+        any(ch in text for ch in "[]{},&*#?|<>=!%@`\"'")
+        or text[0] in "- "
         or text[-1] == " "
         or ": " in text
         or " #" in text

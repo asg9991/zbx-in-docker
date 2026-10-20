@@ -179,27 +179,69 @@ Nota: `type`, `master_itemid`, `snmp_oid` y `preprocessing` deben ir en la
 **misma** llamada `item.update`; no se puede pasar de DEPENDENT a SNMP_AGENT
 dejando el master puesto.
 
-## Acciones (pendiente de decisión)
+## Acciones (EJECUTADAS 2026-10-20)
 
-- [ ] **A. Desacoplar las gráficas del walk** — convertir los prototipos
-      `net.if.in/out` (127577/127580) y `net.vlan.in/out` (131405/131406) de
-      DEPENDENT a SNMP_AGENT con `get[]` directo
-      (`1.3.6.1.2.1.31.1.1.1.6/10.{#SNMPINDEX}`). Es el patrón que ya usa el
-      template PPP y elimina los cortes de raíz. Requiere cambiar el
-      preprocessing de los prototipos y re-sincronizar los items de host.
-- [ ] **B. Apagar `net.if.wireless.walk`** (17 columnas, 22 % de la carga,
-      cero consumidores habilitados).
-- [ ] **C. Quitar la columna `ifAdminStatus` de `net.if.walk`** (7/8 columnas
-      usadas; la 8ava solo la usa la regla WiFi apagada).
-- [ ] **D. Subir delay de los walks restantes a 5m y fijar timeout 60s**, para
-      que no se reintenten cada minuto sobre un walk que no completa.
-- [ ] **E. Reactivar los walks de discovery** en 701/702/703 una vez
-      desacoplados los items (A), con delay 5m.
-- [ ] **F. Sincronizar el repo** (`templates/*.yaml`) con el estado vivo
-      post-cambio y mover el backup de `templates/backup/2026-10-20/` a la
-      posición canónica.
+- [x] **A. Desacoplar las gráficas del walk** — prototipos `net.if.in/out`
+      (127577/127580), `net.if.status/type` (127582/127583) y
+      `net.vlan.in/out` (131405/131406) convertidos de DEPENDENT a SNMP_AGENT
+      con `get[]` directo (`1.3.6.1.2.1.31.1.1.1.6/10.{#SNMPINDEX}`),
+      sin master y sin el paso SNMP_WALK_VALUE. El walk queda solo como
+      fuente del LLD.
+- [x] **B. Apagar `net.if.wireless.walk`** (17 columnas, 22 % de la carga,
+      cero consumidores habilitados) — deshabilitado en template y en los 7 hosts.
+- [x] **C. Quitar las columnas de contadores del walk** — al independizar los
+      items, el walk solo necesita identidad: `net.if.walk` 8 → 4 columnas y
+      `net.vlan.walk` 6 → 4 columnas (ifAdminStatus nunca se uso en la cadena
+      activa; dot1q .6/.10 quedaron en los items directos).
+- [x] **D. delay 5m + timeout 60s** en los walks (de 1m/300s), para que no se
+      reintenten cada minuto sobre un walk pesado.
+- [x] **E. Reactivar el discovery** en 701/702/703 y forzar el rediscovery con
+      `task.create` type 6 (Execute now).
+- [x] **F. Sincronizar el repo** (`templates/*.yaml`) con el estado vivo.
 - [ ] **G. Escalar a O&M** los cortes de 501/502 (equipos caídos) con el
       detalle de carga SNMP medido, que es el insumo para el cliente.
+
+## Mecanismo de propagación (7.4) — lo que había que entender
+
+| Hecho verificado | Consecuencia |
+|---|---|
+| `template.get` ignora `ids` (usar `templateids`) y devuelve las discovery rules en `discoveryRules` (camelCase) | el export por API no sirve para backup completo |
+| `item.get` **no** devuelve las discovery rules ni los item prototypes | hay que usar `discoveryRule.get` / `itemPrototype.get` |
+| El API 7.4 no expone preprocessing, filtros ni prototipos de las discovery rules | el backup fiel sale de la DB (`item_preproc`, `item_condition`, `item_discovery`) |
+| Los items de host heredados son **inherited objects**: `snmp_oid` y `timeout` son readonly | no se pueden alinear item por item; hay que cambiar el template |
+| `delay`, `status` y `type` sí se actualizan en el item de host | con eso se alinearon 19 items |
+| El sync template → host **sí propaga** OID, delay y type | las divergencias venían de escrituras directas en DB |
+| El sync **no** reescribe los items ya descubiertos por LLD | hay que purgarlos y forzar el rediscovery |
+| Una discovery rule dependiente debe tener `delay=0` (su cadencia la hereda del master) | `delay: 1h` en la regla es inválido |
+| `task.create` type 6 = "Execute now" para items y discovery rules | es lo que fuerza el rediscovery (el JSON de identidad no cambia, así que la LLD no dispara sola) |
+| Al re-descubrir, Zabbix recrea también los `graph_items` de los graph prototypes | los graphs quedan apuntando a los itemids nuevos sin重建 manual |
+| Tipos de preprocessing 7.4 (verificados en DB): 1=MULTIPLIER, 10=CHANGE_PER_SECOND, 20=DISCARD_UNCHANGED_HEARTBEAT, 28=SNMP_WALK_VALUE, 29=SNMP_WALK_TO_JSON | no son los de 6.x |
+
+## Resultado
+
+| Métrica | Antes | Después |
+|---|---|---|
+| Varbinds SNMP por minuto (703) | ~39.900 | ~3.960 (**−90 %**) |
+| Columnas del walk de interfaces | 8 + 6 + 17 | 4 + 4 (+ 0) |
+| Cadencia de los walks | 1 min | 5 min |
+| Items de tráfico | dependent del walk | SNMP_AGENT directos |
+| Divergencias host vs template (406 items) | 34 | **0** |
+| Gaps > 120 s en los items de tráfico | 15-25 por host | 0 |
+
+Hosts con el cambio aplicado: 601, 602, 701, 702, 703.
+Pendiente: **501 y 502**, que están caídos (no responden SNMP ni ICMP). No se
+purgaron para no dejar sus gráficas vacías; sus items viejos siguen
+funcionando cuando el equipo vuelva, y ahí se aplica el mismo procedimiento.
+
+## Verificación ejecutada
+
+- 0 gaps > 120 s en los items de tráfico de los 5 CHR vivos (los gaps
+  restantes en 601/602/701 son anteriores al fix, 15:56-15:58).
+- 0 items de tráfico en estado de error; todos con valores nuevos cada 1 min.
+- 0 `graph_items` colgando y 0 graphs vacíos en los 7 CHR.
+- Divergencia host vs template = 0 en OID, delay, timeout, status y type.
+- Repo (`templates/*.yaml`) verificado item por item contra el estado vivo.
+
 
 ## Verificación
 
