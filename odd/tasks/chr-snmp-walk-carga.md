@@ -146,6 +146,39 @@ congeladas: sus dependientes (`134041`-`134049` en 703) quedaron huérfanos.
   `1.3.6.1.2.1.2.2.1.2` (edit manual), mientras los items a nivel host siguen
   con el walk de 8 columnas. Divergencia template/host a corregir.
 
+## Propagación: el cambio va en DOS capas (template + host)
+
+Un cambio de template **no** reescribe los items ya descubiertos en los hosts.
+Prueba en vivo (2026-10-20): el item de template `127531` (`net.if.walk`) fue
+editado a OID simple `1.3.6.1.2.1.2.2.1.2` con timeout 60s, y los 7 items de
+hostansson `walk[8 columnas]` con timeout 300s. La edición nunca llegó.
+
+Consecuencia: el desacople se aplica en dos capas.
+
+| Capa | Qué se modifica | Alcance |
+|---|---|---|
+| Template (fuente de verdad) | prototipos `net.if.in/out` (127577/127580, tpl 10841) y `net.vlan.in/out` (131405/131406, tpl 10869): type 18 → 20, `snmp_oid` con `{#SNMPINDEX}`, quitar el paso SNMP_WALK_VALUE del preprocessing | 4 prototipos → aplica a hosts futuros y a rediscoveries |
+| Host (efecto inmediato) | los items ya descubiertos: type 18 → 20, `snmp_oid` con el índice ya resuelto, `master_itemid` → null, preprocessing sin SNMP_WALK_VALUE | **146 items** en los 7 CHR |
+
+**Por qué no borrar y re-descubrir**: los graphs apuntan a itemids concretos
+(ej. graph 7814 usa los items 131477-131489). Al borrar y re-descubrir, los
+items nacen con itemid nuevo → se rompen los graphs y se pierde la historia.
+`item.update` conserva itemid, clave e historia.
+
+Modelo a copiar: el item PPP descubierto `133880`
+(`net.ppp.in[<pppoe-buratovichhnos>]`, type 20, `snmp_oid`
+`1.3.6.1.4.1.14988.1.1.2.1.1.8.258013`, sin master) frente al `134041`
+(`net.if.in[ifHCInOctets.96]`, type 18, sin OID, master 133979).
+
+Al actualizar un item de host que viene de template, queda como override
+local (la UI lo marca como modificado) y deja de seguir al template. Es
+aceptable: el cambio estructural es puntual, no algo que deba seguir al
+template.
+
+Nota: `type`, `master_itemid`, `snmp_oid` y `preprocessing` deben ir en la
+**misma** llamada `item.update`; no se puede pasar de DEPENDENT a SNMP_AGENT
+dejando el master puesto.
+
 ## Acciones (pendiente de decisión)
 
 - [ ] **A. Desacoplar las gráficas del walk** — convertir los prototipos
