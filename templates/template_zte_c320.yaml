@@ -969,7 +969,7 @@ zabbix_export:
               type: SNMP_AGENT
               snmp_oid: 'SNMPv2-SMI::enterprises.3902.1015.3.1.13.1.4.{#SNMPINDEX}'
               key: '3902.1015.3.1.13.1.4.[{#SNMPINDEX}]'
-              delay: 10s
+              delay: 1m
               value_type: FLOAT
               units: dbm
               description: |

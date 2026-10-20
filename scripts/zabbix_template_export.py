@@ -311,7 +311,7 @@ def render_db_json(doc, outfile, label=None):
     """
     tpl = doc["template"]
     masters = {}
-    for item in doc.get("items", []):
+    for item in (doc.get("items") or []):
         masters[item["itemid"]] = item
 
     def master_key(mid):
@@ -351,10 +351,10 @@ def render_db_json(doc, outfile, label=None):
             out["master_item"] = mk
         return {k: v for k, v in out.items() if v not in (None, [], {})}
 
-    items_out = [item_block(i) for i in doc.get("items", [])]
+    items_out = [item_block(i) for i in (doc.get("items") or [])]
 
     rules_out = []
-    for rule in doc.get("discovery_rules", []):
+    for rule in (doc.get("discovery_rules") or []):
         out = {
             "uuid": rule.get("uuid"),
             "name": rule.get("name"),
@@ -407,7 +407,7 @@ def render_db_json(doc, outfile, label=None):
                 "value": m.get("value"),
                 "description": (m.get("description") or "").rstrip(),
             }
-            for m in doc.get("macros", [])
+            for m in (doc.get("macros") or [])
         ],
     }
     if label:

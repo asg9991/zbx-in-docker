@@ -34,6 +34,7 @@ zabbix_export:
           name: 'DNS TCP 53 available'
           type: SIMPLE
           key: 'net.tcp.service[tcp,{$DNS.IP},53]'
+          delay: 3m
           value_type: FLOAT
           tags:
             - tag: component
@@ -52,6 +53,7 @@ zabbix_export:
           name: 'UDP 53 en escucha'
           type: ZABBIX_ACTIVE
           key: 'net.udp.listen[53]'
+          delay: 3m
           value_type: FLOAT
           trends: '0'
           tags:
