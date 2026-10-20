@@ -233,6 +233,39 @@ Pendiente: **501 y 502**, que están caídos (no responden SNMP ni ICMP). No se
 purgaron para no dejar sus gráficas vacías; sus items viejos siguen
 funcionando cuando el equipo vuelva, y ahí se aplica el mismo procedimiento.
 
+## Dashboard (Global view, dashboardid 1)
+
+Al verificar el dashboard aparecieron 3 widgets rotos, todos en el estado que
+el repo documenta como trampa ("reference-only widgets drop silently"):
+
+| Widget | Página | Problema | Resolución |
+|---|---|---|---|
+| `NODO 7 - MKT 703 - 40G` | NODOS | solo `reference`, sin graphid | re-point al graph 8521 (Interface PUBLICA de 703) |
+| `MKT 703 - VLANs` | VLAN POR NODO | solo `reference`; no existía el graph agregado de 703 | creado `MKT 703 - All VLANs Traffic` (graphid 8525, 6 items: 3 VLANs in/out) y re-point |
+| `BASE 227 (WAN Traffic)` | TRAFICO DE BASES | apuntaba al graph 5615, que **ya no existe** (el host BASE 227 se elimino en una limpieza anterior) | widget eliminado (colgado de un host borrado) |
+
+Ritual aplicado (docs/dashboard-update.md): GET completo -> 3 backups
+(JSON fechado, `configuration.export` de templates, `pg_dump` de
+`dashboard*`/`widget*` en `data/dashboard-backups/2026-10-20/`, fuera de git
+porque `data/` esta ignorado) -> clon -> validacion con `dashboard.create`
+(clon throwaway, creado y borrado) -> **un solo PUT** -> verificacion de
+conteos por pagina.
+
+Resultado: 12 paginas antes y despues; conteos de widgets identicos en todas
+las paginas salvo `TRAFICO DE BASES` (24 -> 23, el borrado intencional del
+widget colgando). Quedan **0 widgets con solo `reference`**.
+
+### API 7.4 (cambios que rompen codigo viejo)
+
+| Llamada | En 6.x | En 7.4 |
+|---|---|---|
+| `graph.create` | `items: [...]` | **`gitems: [...]`** (y `graphItem.create` no existe) |
+| `dashboard.get` | `selectPages: ["extend"]` | `selectPages: ["dashboard_pageid","name","display_period","widgets"]` (no hay `selectWidgets`) |
+| `dashboard.update` | acepta `uuid` | **rechaza `uuid`** (read-only) |
+| `configuration.export` | `options: {"dashboards": [...]}` | `options: {"templates": [...]}`; dashboards ya no son exportables |
+| `template.get` | `ids` | **`templateids`** (ignora `ids` en silencio) |
+| `item.get` | devuelve todo | **no** devuelve discovery rules ni item prototypes |
+
 ## Verificación ejecutada
 
 - 0 gaps > 120 s en los items de tráfico de los 5 CHR vivos (los gaps
