@@ -284,3 +284,64 @@ widget colgando). Quedan **0 widgets con solo `reference`**.
 - Conteo de varbinds por minuto (snmpwalk) antes/después para confirmar la
   reducción de carga.
 - Dashboard: los widgets de NODO 7 y USUARIOS DEDICADOS sin cortes.
+
+---
+
+# Migración VLANs 502 → 703 (2026-10-21)
+
+## Alcance
+`vlan175, vlan190, vlan220, vlan225, vlan235` (502, nodos 10845) → 703 (10879).
+La config del MikroTik la movieron los técnicos: en 703 quedaron en los
+ifIndex 102, 103, 104, 105, 106 (los previos de 501: vlan250=98,
+vlan301=99, vlan305=100).
+
+## Defecto encontrado: la LLD de VLANs no puede descubrir en 703
+
+El walk `net.vlan.walk` (4 columnas) sobre la ifTable de 703 devuelve un
+valor que **Zabbix trunca a 64 KB** (límite de valor TEXT). Con las ~2.000
+interfaces PPPoE nuevas (ifIndex 15.7M) el JSON que arma
+`SNMP_WALK_TO_JSON` queda entero con las PPPoE y **sin ninguna VLAN**
+(índices 62-106): 464 entradas, todas PPPoE, 0 VLANs. Antes de la migración
+PPPoE el valor entraba en 64 KB y la LLD veía las VLANs; ahora no.
+
+Medición: `len JSON: 65535`, `entradas: 464`, `idx min: 15738670`,
+`idx < 1000 (VLANs): 0`.
+
+**Consecuencia**: la LLD no descubre VLANs nuevas en los CHR con muchas
+sesiones PPPoE. Es un defecto de diseño del template (descubrir por walk de
+tabla completa), no del filtro.
+
+## Cómo se resolvió ahora
+
+Los items y graficos se materializaron **exactamente como los crearía la
+LLD** (mismo key, snmp_oid, preprocessing y tags del prototipo 131405/131406),
+para no romper el patrón de "el template es el maestro":
+
+- 10 items en 703 (5 VLANs × in/out), type 20, snmp_oid directo
+  (`1.3.6.1.2.1.31.1.1.1.6/10.<ifIndex>`), delay 1m, history 31d, trends 365d,
+  preprocessing CHANGE_PER_SECOND + MULTIPLIER 8, tags component=network /
+  interface=vlanXXX.
+- 5 graficos por VLAN (8613-8617): 900x200, in drawtype 5 color 199C0D,
+  out drawtype 2 color F63100 (idéntico al que crea el graph prototype).
+- Agregado 8525 "MKT 703 - All VLANs Traffic" actualizado a 16 series
+  (8 VLANs). Colores distintos por VLAN, sin colisiones.
+- 502: 10 items VLAN huérfanos + 5 graficos por VLAN + agregado 7814
+  eliminados (el router está caído y en mantenimiento, su LLD no corría para
+  marcarlos). Ningún widget los referenciaba.
+- Dashboard 1: 'MKT 703 - VLANs' → 8525; 'NODO 7 - MKT 703 - 40G' → 8521
+  (Interface PUBLICA de 703, estaba sin graphid); 'BASE 227 (WAN Traffic)'
+  eliminado (el host BASE 227 ya no existe). 12 páginas, 119 widgets, 0
+  referencias a item o graph rotas.
+
+Cuando la LLD vuelva a funcionar, el discovery **adopta** estos items (misma
+key) sin duplicar.
+
+## Pendiente: arreglar la LLD para los CHR
+
+Opciones a evaluar (ninguna aplicada):
+1. Descubrir por la **tabla de VLANs del bridge** del MikroTik
+   (1.3.6.1.4.14988.1.1.4.1.1): solo 8 filas en vez de 2.190. Problema:
+   el índice de esa tabla no es el ifIndex que necesitan los OIDs de contadores.
+2. Reducir el walk a las columnas mínimas y aceptar el truncamiento → no alcanza
+   (con 2.190 filas el JSON sigue pasándose de 64 KB).
+3. Descubrir por GET contra una lista estática de VLANs.
