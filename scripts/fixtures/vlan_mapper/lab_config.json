@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Configuracion de LABORATORIO para scripts/vlan_mapper.py.",
+    "El lab no tiene agente SNMP: el 'snmpwalk' no esta instalado en el host y",
+    "no hay ningun dispositivo SNMP que consultar. Este archivo sirve para",
+    "probar el contrato de la CLI (flags, formato de salida, dry-run).",
+    "Para el lab, el walk se inyecta en el test (scripts/test_vlan_mapper.py).",
+    "Para un dry-run real, apuntar hosts[].ip a un equipo con SNMP."
+  ],
+  "zabbix": {
+    "server": "127.0.0.1",
+    "port": 10051,
+    "key": "net.vlan.map",
+    "docker_binary": "docker",
+    "use_docker": true,
+    "container": "zabbix-server",
+    "sender_binary": "zabbix_sender"
+  },
+  "snmp": {
+    "version": 2,
+    "community": "public",
+    "timeout": 5,
+    "retries": 0,
+    "oid": "1.3.6.1.2.1.2.2.1.2",
+    "binary": "snmpwalk"
+  },
+  "vlan": {
+    "pattern": "^vlan[0-9]+$",
+    "exclude_pattern": "^pppoe-",
+    "ids": []
+  },
+  "hosts": [
+    {
+      "zabbix_host": "vlan-lld-shape-lab",
+      "ip": "127.0.0.1"
+    }
+  ]
+}
