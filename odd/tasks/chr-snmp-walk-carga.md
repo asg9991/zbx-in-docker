@@ -345,3 +345,92 @@ Opciones a evaluar (ninguna aplicada):
 2. Reducir el walk a las columnas mínimas y aceptar el truncamiento → no alcanza
    (con 2.190 filas el JSON sigue pasándose de 64 KB).
 3. Descubrir por GET contra una lista estática de VLANs.
+
+## Investigación de la causa: por qué la ifTable llega a 2.190 filas (2026-10-21)
+
+Medición en 703 (192.0.2.65):
+
+| Dato | Valor |
+| --- | --- |
+| Filas de la ifTable | 2.190 |
+| Walk de UNA columna (ifDescr) | **118.784 bytes** (el valor de un item Zabbix se corta a **65.535**) |
+| Columnas que servía el walk original | 8 → el JSON completo excedía el límite |
+| Sesiones PPPoE activas | **2.188** |
+| VLANs del bridge (las que se quieren descubrir) | 8 |
+
+**El 99 % de la ifTable son las interfaces dinámicas que crea el propio
+servicio PPPoE.** No hay tabla chica equivalente: la MIB MikroTik de este
+build no expone la tabla de VLANs del bridge (7 sub-tablas, 0 filas), la API
+REST de MikroTik no está disponible (8291 = winbox, 8728 cerrado) y
+Q-BRIDGE no da el mapeo VLAN→ifIndex. GETNEXT y GETBULK devuelven el mismo
+orden ascendente → **no es un problema del agente SNMP**, es el tamaño del
+valor. El `SNMP_WALK_TO_JSON` además reordena (orden hash), así que el
+subconjunto que sobrevive al truncamiento es **arbitrario**: con 1 macro
+sobreviven 955 de ~1.200 entidades y solo 2 de las 8 VLANs (vlan175, vlan190).
+
+## Hallazgo lateral: el conteo "PPP Active" está mal (misma raíz, 64 KB)
+
+- El item `mikrotik.ppp.active.raw` (703: itemid 134040) walkea
+  **1.3.6.1.4.1.14988.1.1.14.1.1.2 = la tabla de NOMBRES DE INTERFAZ**
+  (no la de sesiones PPP: 1.3.6.1.4.1.14988.1.1.2.1.1.2).
+- El JS del item dependiente cuenta las líneas que matchean `/<pppoe-/`.
+- Ese walk **también se trunca a 64 KB** → el valor guardado tiene
+  **899 interfaces `<pppoe-` de 2.188** → **el conteo subestima ~59 %**.
+- Además los items `mikrotik.ppp.active.count` (type 18) **no vienen
+  guardando historia** (0 filas en history_uint, mtime 1969) → el dato
+  directamente no existe.
+- No hay escalar en la MIB MikroTik con el número de sesiones PPP
+  (probadas las columnas .1 a .12 de la tabla y los nodos padre: todo
+  "No Such Object" o tabla).
+- La tabla de sesiones PPP (.2.1.1.2) tiene las 2.188 entradas pero **su
+  walk también supera 64 KB** (~98 KB): re-apuntar el item mejoraría el
+  conteo (de ~41 % a ~64 % de cobertura) pero no lo haría exacto. Para el
+  conteo exacto hay que contar fuera de la tubería de 64 KB (script).
+
+## Opción D: achicar la ifTable (evaluada 2026-10-21)
+
+- **Las interfaces dinámicas NO son solo para los 8 dedicados.** En 703 hay
+  2.188 sesiones con tráfico real (decenas de GB; p.ej. `<pppoe-aliciacanovas>`
+  in=1.991.939.048 out=191.815.076). El CHR es el **terminador PPPoE del
+  servicio "Enlace" de ~2.000 usuarios**; los 8 dedicados son un subconjunto
+  de la whitelist `{$PPP.DEDICATED.MATCHES}`.
+- **D no es un cambio de Zabbix**: para que la ifTable se achique, la
+  terminación PPPoE tiene que **salir del CHR que monitoreamos** (equipo
+  dedicado). Es un proyecto de infraestructura con riesgo de servicio para
+  2.000 usuarios, fuera del alcance del monitoreo.
+- La variante "D desde Zabbix" (que el CHR declare sus VLANs con su propio
+  agente Zabbix) **no aplica hoy: los 8 CHR no tienen Zabbix agent**, solo
+  SNMP (1 interfaz por host). Habría que instalarlo en los equipos.
+
+## Punto de decisión abierto (2026-10-21)
+
+Pregunta para los técnicos (no es de Zabbix):
+
+> ¿Es correcto que el CHR que monitoreamos termine el PPPoE de 2.000 usuarios,
+> o esos usuarios pueden terminar en otro equipo?
+
+- Si **pueden mudarse** → **D** es el camino: la ifTable entra en 64 KB y la
+  LLD original vuelve a funcionar sola, sin scripts.
+- Si **el CHR es el terminador de la red** (que es el caso hoy) → **D no
+  aplica** y el camino es **B** (lista explícita VLAN→ifIndex por host,
+  resuelta por un script que no sufre el límite de 64 KB) + **C**
+  (reconciliador LLD como red de seguridad). El conteo PPP se arregla por la
+  misma vía (script) o con la mejora parcial del walk PPP.
+
+Pendiente de aplicar: **B + C**, o esperar la respuesta de los técnicos.
+
+## Purga de historia y housekeeper (2026-10-21)
+
+Trabajo de saneo de la base, en paralelo a lo anterior:
+
+- Purga manual: **141,9 M filas** (history_uint 120 M → 35,1 M;
+  history 49 M → 7,7 M). `history_uint` quedó en **3,1 GB**.
+- `hk_history` 14 d → 7 d; `VACUUM FULL` → disco **69 % → 47 %** (44 GB usados).
+- Housekeeper: **154 s → 14,9 s**, y con **0 items/triggers** en la cola (el
+  churn estaba drenado).
+- Backups previos: `zabbix_20261021-093623.sql.gz` (545 MB, validado) y
+  `zbx-stack-site-a-20261021-093623.tar.gz` en `/opt/monitoring/bkp-post-recovery/`
+  (chmod 600). Dump pre-docker (1,8 GB) y volúmenes MySQL del 14/09 borrados.
+- `docker system prune -a` liberó 1.565 GB (mysql:8.0, pgloader, build cache).
+- Items uptime @30 s deshabilitados (316) y DNS Checks (site-c, otro cliente)
+  deshabilitados (12, template revertido).
