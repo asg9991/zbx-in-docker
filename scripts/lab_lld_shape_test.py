@@ -617,6 +617,20 @@ CASES = [
         "expect": "no-discover",
     },
     {
+        "id": "nomacro",
+        "title": "array de objetos + filtro LLD sobre una macro INEXISTENTE",
+        "paths": [("{#IFDESCR}", "$.ifdescr"), ("{#IFNAME}", "$.ifname"), ("{#SNMPINDEX}", "$.index")],
+        "payload": canonical_payload(extra_pppoe=3),
+        "discovery_filter": {
+            "evaltype": 0,  # AND
+            "conditions": [
+                {"macro": "{#IFDESCR}", "operator": 8, "value": "{$T1.MACRO.INEXISTENTE}"},
+            ],
+        },
+        "expect": "no-discover",
+        "note": "macro del filtro que no esta definida en ningun lado: que hace el motor?",
+    },
+    {
         "id": "filter",
         "title": "array de objetos + filtro LLD sobre {#IFDESCR} (excluye pppoe)",
         "paths": [("{#IFDESCR}", "$.ifdescr"), ("{#IFNAME}", "$.ifname"), ("{#SNMPINDEX}", "$.index")],
@@ -771,7 +785,22 @@ def main():
             results.append(result)
             print("    %s -> %s" % ("OK" if result["ok"] else "FALLA", result["detail"]))
 
-        # Integracion con los nombres de produccion.
+            # Que hace el motor cuando el filtro usa una macro que no existe?
+        for case in CASES:
+            if "note" not in case:
+                continue
+            rules = api_call("discoveryRule.get", {"hostids": [host_id], "filter": {"key_": "t1.rule.%s" % case["id"]},
+                                                    "output": ["itemid", "key_", "error"]}, token)
+            error = rules[0].get("error", "") if rules else "(regla inexistente)"
+            print("\n--- caso %s (macro inexistente en el filtro)" % case["id"])
+            print("    error de la regla: %r" % error)
+            log = docker("logs", "zabbix-server", check=False).stdout.splitlines()
+            hits = [line for line in log if "t1.rule.%s" % case["id"] in line][-5:]
+            print("    log del server (%d lineas con la regla):" % len(hits))
+            for line in hits:
+                print("      %s" % line.strip())
+
+    # Integracion con los nombres de produccion.
         print("\n--- integracion: net.vlan.map + net.vlan.discovery")
         integration = run_integration(token, host_id, interface_id)
         results.append(integration)

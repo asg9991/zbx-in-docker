@@ -26,6 +26,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vlan_mapper  # noqa: E402
 
 FIXTURE = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_703_ifdescr_walk.txt")
+FIXTURE_PPP = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_703_ppp_sessions_walk.txt")
+
+# La whitelist real del template 10869 (leida de la base de site-a el 2026-10-22)
+PPP_WHITELIST = (r"(?i)^(<pppoe-coopvinia>|<pppoe-multijactosa>|<pppoe-franciscosellart>|"
+                  r"<pppoe-arrebeef>|<pppoe-garfin>|<pppoe-buratovichhnos>|"
+                  r"<pppoe-southernseeds>|<pppoe-patrullarural>|Enlace-patrullarural)$")
 
 # El mapper publica TODAS las interfaces vlan* del router (la macro de host
 # decide cuales se monitorean: el filtro de la LLD las rechaza).
@@ -47,6 +53,16 @@ def fixture_text():
         return handle.read()
 
 
+def fixture_text():
+    with open(FIXTURE, encoding="utf-8") as handle:
+        return handle.read()
+
+
+def ppp_fixture_text():
+    with open(FIXTURE_PPP, encoding="utf-8") as handle:
+        return handle.read()
+
+
 def fake_walker(text):
     """Walker inyectado: devuelve la fixture sin tocar la red."""
     def walker(ip, community, oid, **kwargs):
@@ -57,12 +73,22 @@ def fake_walker(text):
     return walker
 
 
+def fake_ppp_walker(text):
+    """Walker de la tabla de sesiones PPP."""
+    def walker(ip, community, oid, **kwargs):
+        assert oid == "1.3.6.1.4.1.14988.1.1.2.1.1.2", oid
+        return text
+    return walker
+
+
 class TestVlanMapper(unittest.TestCase):
 
     def setUp(self):
         self.text = fixture_text()
         self.config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
         self.config["hosts"] = [{"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65"}]
+        self.config["ppp"]["whitelist"] = PPP_WHITELIST
+        self.ppp_text = ppp_fixture_text()
 
     # --- parser -----------------------------------------------------------
     def test_fixture_shape(self):
@@ -178,10 +204,133 @@ class TestVlanMapper(unittest.TestCase):
         self.assertEqual(vlans, EXPECTED_VLANS)
         self.assertIn("vlan999", [v["ifdescr"] for v in vlans])
 
+
+    # --- lado PPP: conteo de sesiones y mapa de dedicados -------------------
+    def test_count_ppp_sessions(self):
+        """El conteo es el numero de FILAS de la tabla de sesiones PPP."""
+        rows = vlan_mapper.parse_walk_output(self.ppp_text, "1.3.6.1.4.1.14988.1.1.2.1.1.2")
+        self.assertEqual(len(rows), 2079)
+        self.assertEqual(vlan_mapper.count_ppp_sessions(rows), 2079)
+
+    def test_filter_dedicated_uses_the_whitelist(self):
+        """Solo pasan las sesiones que matchean la whitelist del template."""
+        rows = vlan_mapper.parse_walk_output(self.ppp_text, "1.3.6.1.4.1.14988.1.1.2.1.1.2")
+        dedicated = vlan_mapper.filter_dedicated(rows, PPP_WHITELIST)
+        names = [entry["ppp_name"] for entry in dedicated]
+        self.assertEqual(len(dedicated), 9)
+        self.assertIn("<pppoe-coopvinia>", names)
+        self.assertIn("Enlace-patrullarural", names)
+        self.assertNotIn("<pppoe-aliciacanovas0>", names)
+        for entry in dedicated:
+            self.assertIn("index", entry)
+            self.assertIsInstance(entry["index"], int)
+
+    def test_dedicated_json_is_small(self):
+        """El JSON del master debe entrar de sobra en los 64 KB del item.
+
+        Con 2.079 sesiones PPP, publicar el mapa completo seria ~100 KB: por eso
+        el mapper publica SOLO las dedicadas.
+        """
+        rows = vlan_mapper.parse_walk_output(self.ppp_text, "1.3.6.1.4.1.14988.1.1.2.1.1.2")
+        dedicated = vlan_mapper.filter_dedicated(rows, PPP_WHITELIST)
+        payload = vlan_mapper.build_payload(dedicated)
+        self.assertLess(len(payload), 1024)
+        self.assertLess(len(payload), 65535)
+        # el mapa completo, en cambio, no entraria
+        full = vlan_mapper.build_payload([{"ppp_name": name, "index": index}
+                                          for index, name in rows])
+        self.assertGreater(len(full), 65535)
+
+    def test_no_whitelist_means_no_dedicated_map(self):
+        rows = vlan_mapper.parse_walk_output(self.ppp_text, "1.3.6.1.4.1.14988.1.1.2.1.1.2")
+        self.assertEqual(vlan_mapper.filter_dedicated(rows, None), [])
+        self.assertEqual(vlan_mapper.filter_dedicated(rows, ""), [])
+
+    def test_invalid_whitelist_raises(self):
+        with self.assertRaises(ValueError):
+            vlan_mapper.filter_dedicated([(1, "<pppoe-x>")], "(unclosed")
+
+    def test_ppp_walk_failure_does_not_break_the_vlan_side(self):
+        """Un fallo del walk de PPP no puede tumbar el mapa de VLANs."""
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append((key, payload))
+            return True, "sent: 1"
+
+        def broken_ppp_walker(ip, community, oid, **kwargs):
+            raise RuntimeError("timeout")
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(self.config, walker=fake_walker(self.text),
+                                   ppp_walker=broken_ppp_walker)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertEqual([key for key, _payload in published], ["net.vlan.map"])
+
+    def test_key_for_each_purpose(self):
+        zabbix = self.config["zabbix"]
+        self.assertEqual(vlan_mapper.key_for(zabbix, "vlan_map"), "net.vlan.map")
+        self.assertEqual(vlan_mapper.key_for(zabbix, "ppp_count"), "mikrotik.ppp.active.count")
+        self.assertEqual(vlan_mapper.key_for(zabbix, "ppp_map"), "net.ppp.map")
+
+    def test_read_whitelist_from_db(self):
+        """La whitelist se lee del TEMPLATE por psql read-only (fuente unica)."""
+        calls = []
+
+        class FakeResult:
+            returncode = 0
+            stdout = "(?i)^(<pppoe-coopvinia>|<pppoe-garfin>)$\n"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            calls.append(command)
+            return FakeResult()
+
+        original = vlan_mapper.subprocess.run
+        vlan_mapper.subprocess.run = fake_run
+        try:
+            value = vlan_mapper.read_whitelist_from_db(
+                {"type": "db", "container": "zabbix-postgres", "template_hostid": 10870,
+                 "macro": "{$PPP.DEDICATED.MATCHES}"})
+        finally:
+            vlan_mapper.subprocess.run = original
+        self.assertIn("<pppoe-coopvinia>", value)
+        self.assertTrue(calls[0][0].endswith("docker"))
+        self.assertIn("zabbix-postgres", calls[0])
+        self.assertIn("hostmacro", calls[0][-1])
+
+    def test_read_whitelist_from_db_returns_none_on_failure(self):
+        class FakeResult:
+            returncode = 1
+            stdout = ""
+            stderr = "psql: no se pudo conectar"
+
+        original = vlan_mapper.subprocess.run
+        vlan_mapper.subprocess.run = lambda command, **kwargs: FakeResult()
+        try:
+            value = vlan_mapper.read_whitelist_from_db(
+                {"type": "db", "container": "zabbix-postgres", "template_hostid": 10870,
+                 "macro": "{$PPP.DEDICATED.MATCHES}"})
+        finally:
+            vlan_mapper.subprocess.run = original
+        self.assertIsNone(value)
+
+    def test_resolve_whitelist_precedence(self):
+        config = json.loads(json.dumps(self.config))
+        config["ppp"]["whitelist"] = None
+        config["ppp"]["whitelist_fallback"] = "(?i)^<pppoe-fallback>$"
+        self.assertEqual(vlan_mapper.resolve_whitelist(config, "(?i)^<pppoe-directo>$"),
+                         "(?i)^<pppoe-directo>$")
+
     # --- payload ----------------------------------------------------------
     def test_payload_shape_is_the_t1_contract(self):
-        vlans, _rows, error = vlan_mapper.collect_host(
-            self.config["hosts"][0], self.config, walker=fake_walker(self.text)
+        vlans, _rows, _ppp, error = vlan_mapper.collect_host(
+            self.config["hosts"][0], self.config, walker=fake_walker(self.text),
+            ppp_walker=fake_ppp_walker(self.ppp_text)
         )
         self.assertIsNone(error)
         payload = vlan_mapper.build_payload(vlans)
@@ -195,8 +344,9 @@ class TestVlanMapper(unittest.TestCase):
 
     def test_payload_is_small(self):
         """El motivo de todo el diseno: el JSON tiene que entrar de sobra en 64 KB."""
-        vlans, _rows, _error = vlan_mapper.collect_host(
-            self.config["hosts"][0], self.config, walker=fake_walker(self.text)
+        vlans, _rows, _ppp, _error = vlan_mapper.collect_host(
+            self.config["hosts"][0], self.config, walker=fake_walker(self.text),
+            ppp_walker=fake_ppp_walker(self.ppp_text)
         )
         payload = vlan_mapper.build_payload(vlans)
         self.assertLess(len(payload), 1024)
@@ -206,14 +356,15 @@ class TestVlanMapper(unittest.TestCase):
     def test_run_dry_run_does_not_publish(self):
         published = []
 
-        def spy(zabbix_config, host, payload):
-            published.append((host, payload))
+        def spy(zabbix_config, host, key, payload):
+            published.append((host, key, payload))
             return True, "ok"
 
         original = vlan_mapper.publish
         vlan_mapper.publish = spy
         try:
-            code = vlan_mapper.run(self.config, dry_run=True, walker=fake_walker(self.text))
+            code = vlan_mapper.run(self.config, dry_run=True, walker=fake_walker(self.text),
+                                   ppp_walker=fake_ppp_walker(self.ppp_text))
         finally:
             vlan_mapper.publish = original
         self.assertEqual(code, 0)
@@ -222,21 +373,26 @@ class TestVlanMapper(unittest.TestCase):
     def test_run_publishes_and_is_idempotent(self):
         published = []
 
-        def spy(zabbix_config, host, payload):
-            published.append((host, payload))
+        def spy(zabbix_config, host, key, payload):
+            published.append((host, key, payload))
             return True, "sent: 1"
 
         original = vlan_mapper.publish
         vlan_mapper.publish = spy
         try:
-            self.assertEqual(vlan_mapper.run(self.config, walker=fake_walker(self.text)), 0)
-            self.assertEqual(vlan_mapper.run(self.config, walker=fake_walker(self.text)), 0)
+            self.assertEqual(vlan_mapper.run(self.config, walker=fake_walker(self.text),
+                                              ppp_walker=fake_ppp_walker(self.ppp_text)), 0)
+            self.assertEqual(vlan_mapper.run(self.config, walker=fake_walker(self.text),
+                                              ppp_walker=fake_ppp_walker(self.ppp_text)), 0)
         finally:
             vlan_mapper.publish = original
-        self.assertEqual(len(published), 2)
-        self.assertEqual(published[0], published[1], "dos corridas deben publicar lo mismo")
-        host, payload = published[0]
+        self.assertEqual(len(published), 6, "3 valores por corrida (vlan_map, ppp_count, ppp_map)")
+        self.assertEqual(published[0], published[3], "dos corridas deben publicar lo mismo")
+        self.assertEqual(published[1], published[4])
+        self.assertEqual(published[2], published[5])
+        host, key, payload = published[0]
         self.assertEqual(host, "SW-EDGE-703")
+        self.assertEqual(key, "net.vlan.map")
         self.assertEqual(json.loads(payload), EXPECTED_VLANS)
 
     def test_one_dead_chr_does_not_break_the_others(self):
@@ -252,18 +408,19 @@ class TestVlanMapper(unittest.TestCase):
         ]
         published = []
 
-        def spy(zabbix_config, host, payload):
-            published.append(host)
+        def spy(zabbix_config, host, key, payload):
+            published.append((host, key))
             return True, "sent: 1"
 
         original = vlan_mapper.publish
         vlan_mapper.publish = spy
         try:
-            code = vlan_mapper.run(config, walker=walker)
+            code = vlan_mapper.run(config, walker=walker, ppp_walker=fake_ppp_walker(self.ppp_text))
         finally:
             vlan_mapper.publish = original
         self.assertEqual(code, 1, "un CHR caido tiene que quedar registrado como fallo")
-        self.assertEqual(published, ["SW-EDGE-703"], "el CHR vivo se publica igual")
+        self.assertEqual([host for host, _key in published], ["SW-EDGE-703"] * 3,
+                         "el CHR vivo se publica igual (3 valores)")
 
     def test_host_without_ip_is_skipped(self):
         config = json.loads(json.dumps(self.config))

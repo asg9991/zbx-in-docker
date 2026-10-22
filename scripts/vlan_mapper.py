@@ -65,10 +65,31 @@ DEFAULT_CONFIG = {
         "server": "127.0.0.1",
         "port": 10051,
         "key": "net.vlan.map",
+        # clave por proposito (una key por item que consume el valor)
+        "keys": {
+            "vlan_map": "net.vlan.map",
+            "ppp_count": "mikrotik.ppp.active.count",
+            "ppp_map": "net.ppp.map",
+        },
         "docker_binary": "docker",
         "use_docker": True,
         "container": "zabbix-server",
         "sender_binary": "zabbix_sender",
+    },
+    "ppp": {
+        # Tabla de sesiones PPP (MikoTik): 1.3.6.1.4.1.14988.1.1.2.1.1.2
+        "session_oid": "1.3.6.1.4.1.14988.1.1.2.1.1.2",
+        # La whitelist de dedicados se LEE del template (fuente unica), por
+        # psql read-only contra la base de Zabbix. Fallback opcional (regex)
+        # por si el psql no es viable en el host donde corre el mapper.
+        "whitelist_source": {
+            "type": "db",
+            "docker_binary": "docker",
+            "container": "zabbix-postgres",
+            "template_hostid": 10870,
+            "macro": "{$PPP.DEDICATED.MATCHES}",
+        },
+        "whitelist_fallback": None,
     },
     "snmp": {
         "version": 2,
@@ -237,8 +258,8 @@ def build_payload(vlans):
 # --------------------------------------------------------------------------
 # Publicacion
 # --------------------------------------------------------------------------
-def publish(zabbix_config, zabbix_host, payload):
-    """Publica el JSON con zabbix_sender. Devuelve (ok, salida)."""
+def publish(zabbix_config, zabbix_host, key, payload):
+    """Publica un valor con zabbix_sender. Devuelve (ok, salida)."""
     if zabbix_config.get("use_docker", True):
         command = [
             zabbix_config.get("docker_binary", "docker"),
@@ -248,7 +269,7 @@ def publish(zabbix_config, zabbix_host, payload):
             "-z", str(zabbix_config["server"]),
             "-p", str(zabbix_config["port"]),
             "-s", zabbix_host,
-            "-k", zabbix_config["key"],
+            "-k", key,
             "-o", payload,
         ]
     else:
@@ -257,7 +278,7 @@ def publish(zabbix_config, zabbix_host, payload):
             "-z", str(zabbix_config["server"]),
             "-p", str(zabbix_config["port"]),
             "-s", zabbix_host,
-            "-k", zabbix_config["key"],
+            "-k", key,
             "-o", payload,
         ]
     result = subprocess.run(command, capture_output=True, text=True)
@@ -266,38 +287,137 @@ def publish(zabbix_config, zabbix_host, payload):
     return ok, output
 
 
+def key_for(zabbix_config, purpose):
+    """Key de cada proposito (con fallback al key unico legacy)."""
+    keys = zabbix_config.get("keys") or {}
+    if purpose in keys:
+        return keys[purpose]
+    return zabbix_config.get("key", "net.vlan.map")
+
+
 # --------------------------------------------------------------------------
 # Flujo por host
 # --------------------------------------------------------------------------
-def collect_host(host_config, config, walker=run_snmpwalk):
-    """Walk + filtro de un CHR. Devuelve (vlan_publicadas, filas, error)."""
+def count_ppp_sessions(rows):
+    """Cantidad de sesiones PPP activas = filas de la tabla de sesiones.
+
+    La tabla 1.3.6.1.4.1.14988.1.1.2.1.1.2 tiene UNA fila por sesion PPP
+    (medido en los 5 CHR vivos: el 100 % de las filas son sesiones `<pppoe-`).
+    El conteo NO pasa por el valor del item (que se trunca a 64 KB en el
+    historial), asi que no arrastra el truncamiento.
+    """
+    return len(rows)
+
+
+def filter_dedicated(rows, whitelist_regex):
+    """Sesiones que matchean la whitelist de dedicados, con su indice de fila.
+
+    El indice de fila (el sufijo del OID) es el que usan los prototipos
+    1.3.6.1.4.1.14988.1.1.2.1.1.8.{#SNMPINDEX} / .9.{#SNMPINDEX}.
+    """
+    if not whitelist_regex:
+        return []
+    try:
+        regex = re.compile(whitelist_regex)
+    except re.error as exc:
+        raise ValueError("whitelist de dedicados invalida (%s): %s" % (whitelist_regex, exc))
+    dedicated = []
+    for index, name in rows:
+        if regex.match(name):
+            dedicated.append({"ppp_name": name, "index": index})
+    dedicated.sort(key=lambda entry: entry["index"])
+    return dedicated
+
+
+def read_whitelist_from_db(source):
+    """Lee la macro de la whitelist desde la base de Zabbix (psql read-only).
+
+    source = {"type":"db", "docker_binary":"docker", "container":"zabbix-postgres",
+              "template_hostid":10870, "macro":"{$PPP.DEDICATED.MATCHES}"}
+    Devuelve el valor de la macro (regex) o None si no se pudo leer.
+    """
+    if not source or source.get("type") != "db":
+        return None
+    sql = ("select value from hostmacro where hostid = %s and macro = '%s';"
+           % (int(source["template_hostid"]), source["macro"]))
+    command = [source.get("docker_binary", "docker"), "exec", "-i", source["container"],
+               "psql", "-U", "zabbix", "-d", "zabbix", "-At", "-c", sql]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    except Exception as exc:  # sin docker/psql no se puede leer: no es fatal
+        print("[ppp] no pude leer la whitelist por psql: %s" % exc)
+        return None
+    if result.returncode != 0:
+        print("[ppp] no pude leer la whitelist por psql: %s" % result.stderr.strip())
+        return None
+    value = result.stdout.strip()
+    return value or None
+
+
+def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwalk):
+    """Walk + filtro de un CHR.
+
+    Devuelve (vlan_publicadas, filas_ifdescr, ppp, error) con
+      ppp = {"sessions": N, "dedicated": [{ppp_name, index}, ...]} o None si
+            el walk de sesiones PPP fallo (o no hay whitelist).
+    """
     snmp = config.get("snmp", {})
     vlan = config.get("vlan", {})
+    ppp_cfg = config.get("ppp", {})
     community = host_config.get("community") or snmp.get("community", "public")
-    try:
-        raw = walker(
+
+    def walk(oid):
+        return walker(
             host_config["ip"],
             community,
-            snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"),
+            oid,
             version=snmp.get("version", 2),
             timeout=snmp.get("timeout", 15),
             retries=snmp.get("retries", 1),
             binary=snmp.get("binary", "snmpwalk"),
         )
+
+    try:
+        raw = walk(snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
     except Exception as exc:  # un CHR caido no debe tumbar al resto
-        return [], 0, str(exc)
+        return [], 0, None, str(exc)
     rows = parse_walk_output(raw, snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
     vlans = filter_vlans(
         rows,
         pattern=vlan.get("pattern"),
         exclude_pattern=vlan.get("exclude_pattern"),
     )
-    return vlans, len(rows), None
+
+    ppp = None
+    if ppp_cfg.get("session_oid"):
+        try:
+            ppp_raw = ppp_walker(
+                host_config["ip"],
+                community,
+                ppp_cfg["session_oid"],
+                version=snmp.get("version", 2),
+                timeout=snmp.get("timeout", 15),
+                retries=snmp.get("retries", 1),
+                binary=snmp.get("binary", "snmpwalk"),
+            )
+            ppp_rows = parse_walk_output(ppp_raw, ppp_cfg["session_oid"])
+            ppp = {
+                "sessions": count_ppp_sessions(ppp_rows),
+                "dedicated": filter_dedicated(ppp_rows, ppp_cfg.get("whitelist")),
+                "rows": ppp_rows,
+            }
+        except Exception as exc:
+            # el lado PPP no debe tumbar al lado VLAN
+            print("[ppp] %s: fallo el walk de sesiones PPP: %s" % (host_config.get("zabbix_host"), exc))
+            ppp = None
+    return vlans, len(rows), ppp, None
 
 
-def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
+def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_snmpwalk,
+        verbose=False, whitelist=None):
     """Procesa todos los hosts. Devuelve el codigo de salida (0 = todo bien)."""
     failures = 0
+    zabbix_config = config.get("zabbix", {})
     for host in config.get("hosts", []):
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         name = host.get("zabbix_host")
@@ -307,30 +427,72 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
             print("[%s] %s: sin IP configurada -> se saltea (completar la config)" % (stamp, name))
             failures += 1
             continue
-        vlans, rows, error = collect_host(host, config, walker=walker)
+        vlans, rows, ppp, error = collect_host(host, config, walker=walker, ppp_walker=ppp_walker)
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         if error:
             print("[%s] %s (%s): ERROR %s" % (stamp, name, host["ip"], error))
             failures += 1
             continue
-        payload = build_payload(vlans)
         published = ", ".join(vlan["ifdescr"] for vlan in vlans) or "(ninguna)"
         print("[%s] %s (%s): %d filas de ifTable, %d VLANs publicadas: %s" % (
             stamp, name, host["ip"], rows, len(vlans), published))
         if verbose:
-            print("[%s] %s: %s" % (stamp, name, payload))
+            print("[%s] %s: %s" % (stamp, name, build_payload(vlans)))
         if dry_run:
             continue
-        if not vlans:
-            print("[%s] %s: 0 VLANs -> no se publica (para no vaciar el LLD)" % (stamp, name))
-            continue
-        ok, output = publish(config.get("zabbix", {}), name, payload)
-        if not ok:
-            print("[%s] %s: ERROR publicando -> %s" % (stamp, name, output))
-            failures += 1
+
+        # 1) mapa de VLANs (master de la LLD de VLANs)
+        if vlans:
+            ok, output = publish(zabbix_config, name, key_for(zabbix_config, "vlan_map"),
+                                  build_payload(vlans))
+            if not ok:
+                print("[%s] %s: ERROR publicando el mapa de VLANs -> %s" % (stamp, name, output))
+                failures += 1
+            else:
+                print("[%s] %s: mapa de VLANs publicado (%s)" % (stamp, name, output))
         else:
-            print("[%s] %s: publicado (%s)" % (stamp, name, output))
+            print("[%s] %s: 0 VLANs -> no se publica (para no vaciar el LLD)" % (stamp, name))
+
+        # 2) conteo de sesiones PPP + 3) mapa de dedicados
+        if ppp:
+            count_payload = str(ppp["sessions"])
+            dedicated_payload = build_payload(ppp["dedicated"])
+            print("[%s] %s: %d sesiones PPP, %d dedicadas (%s)" % (
+                stamp, name, ppp["sessions"], len(ppp["dedicated"]),
+                ", ".join("%s@%d" % (d["ppp_name"], d["index"]) for d in ppp["dedicated"]) or "ninguna"))
+            ok, output = publish(zabbix_config, name, key_for(zabbix_config, "ppp_count"), count_payload)
+            if not ok:
+                print("[%s] %s: ERROR publicando el conteo PPP -> %s" % (stamp, name, output))
+                failures += 1
+            else:
+                print("[%s] %s: conteo PPP publicado (%s)" % (stamp, name, output))
+            ok, output = publish(zabbix_config, name, key_for(zabbix_config, "ppp_map"), dedicated_payload)
+            if not ok:
+                print("[%s] %s: ERROR publicando el mapa de dedicados -> %s" % (stamp, name, output))
+                failures += 1
+            else:
+                print("[%s] %s: mapa de dedicados publicado (%s)" % (stamp, name, output))
     return 1 if failures else 0
+
+
+def resolve_whitelist(config, whitelist=None):
+    """Whitelist de PPP dedicados: la del TEMPLATE (fuente unica).
+
+    Orden de precedencia:
+      1. la que se pasa por parametro (tests / dry-run manual)
+      2. la leida por psql de la macro del template (fuente unica en prod)
+      3. el fallback de la config (si el psql no es viable)
+      4. None -> no se publica el mapa de dedicados (el conteo si se publica)
+    """
+    if whitelist:
+        return whitelist
+    ppp_cfg = config.get("ppp", {})
+    if ppp_cfg.get("whitelist") is not None:
+        return ppp_cfg["whitelist"]
+    value = read_whitelist_from_db(ppp_cfg.get("whitelist_source"))
+    if value:
+        return value
+    return ppp_cfg.get("whitelist_fallback")
 
 
 def main(argv=None):
@@ -339,9 +501,16 @@ def main(argv=None):
     parser.add_argument("--dry-run", action="store_true", help="imprime el JSON y no publica")
     parser.add_argument("--host", help="procesa solo ese host (nombre Zabbix)")
     parser.add_argument("--verbose", action="store_true", help="detalle por host")
+    parser.add_argument("--whitelist", help="regex de dedicados (override; por defecto se lee del template)")
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
+    whitelist = resolve_whitelist(config, args.whitelist)
+    if whitelist:
+        print("[ppp] whitelist de dedicados: %s" % whitelist[:120])
+    else:
+        print("[ppp] sin whitelist de dedicados: se publica el conteo pero no el mapa")
+    config.setdefault("ppp", {})["whitelist"] = whitelist
     return run(config, dry_run=args.dry_run, only=args.host, verbose=args.verbose)
 
 
