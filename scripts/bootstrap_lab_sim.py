@@ -30,7 +30,8 @@ USER = os.getenv("ZABBIX_USER", "Admin")
 PASSWORD = os.getenv("ZABBIX_PASSWORD", "")
 
 HOSTGROUP = "Lab/Simulados"
-SIM_HOSTS = ["olt-sim-01", "router-sim-02", "server-sim-03", "ap-sim-04"]
+SIM_HOSTS = ["olt-sim-01", "router-sim-02", "server-sim-03", "ap-sim-04",
+             "core-sim-05", "onu-sim-06", "onu-sim-07"]
 
 _request_id = 0
 

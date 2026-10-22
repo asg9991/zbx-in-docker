@@ -2,9 +2,11 @@
 #   una linea por OID, valor entre comillas:  iso.3.6.1.2.1.2.2.1.2.98 "vlan250"
 # Formato: salida cruda de `snmpwalk -Oq` en el host de site-a (raiz "iso."):
 # Replica el CHR SW-EDGE-703: 2.190 filas de ifTable.
-#   22 interfaces fijas (lo/ether/bridge/wlan) + 8 VLANs + 1 VLAN fuera de la
-#   whitelist (vlan999, ifIndex 101) + 2.159 interfaces dinamicas PPPoE del
-#   servicio "Enlace" (~2.000 usuarios).
+#   22 interfaces fijas (lo/ether/bridge/wlan) + 9 VLANs (8 de cliente + vlan999
+#   en ifIndex 101, que NO esta en la macro del host) + 2.159 interfaces
+#   dinamicas PPPoE del servicio "Enlace" (~2.000 usuarios).
+# El mapper publica TODAS las vlan* que encuentra (9 en esta fixture): la
+# macro de host {$site-a.VLAN.MATCHES} es la que decide cuales se monitorean.
 # Los ifIndex de las VLANs son los verificados en produccion (703):
 #   vlan250=98 vlan301=99 vlan305=100 vlan175=102 vlan190=103
 #   vlan220=104 vlan225=105 vlan235=106

@@ -79,35 +79,23 @@ DEFAULT_CONFIG = {
         "binary": "snmpwalk",
     },
     "vlan": {
-        # Patron de nombre de interfaz que es una VLAN del bridge.
-        "pattern": "^vlan[0-9]+$",
+        # El mapper NO lleva listas de VLANs: la autoridad de que se monitorea
+        # una VLAN es la macro de host {$site-a.VLAN.MATCHES} (el filtro de la
+        # LLD). El mapper publica todas las interfaces vlan* que encuentra en
+        # el router y deja que el filtro las rechaze. Asi, agregar una VLAN a un
+        # CHR es tocar UNA sola lista (su macro).
+        "pattern": "^vlan",
         # Interfaces que se descartan aunque el pattern las acepte.
         "exclude_pattern": "^pppoe-",
-        # Union de VLAN IDs de site-a: la misma whitelist que usa el filtro de
-        # la LLD ({$site-a.VLAN.MATCHES}). Vacio = solo el pattern.
-        # Hace falta la whitelist y no solo el pattern: en 701/702/703 existe
-        # una "vlan499" (ifIndex 89/95) que matchea el pattern pero NO es una
-        # VLAN de cliente.
-        "ids": [
-            100, 105, 110, 111, 115, 120, 125, 130, 135, 140, 145, 150, 155,
-            160, 165, 170, 175, 180, 185, 190, 195, 205, 210, 215, 220, 225,
-            230, 235, 240, 245, 250, 301, 305, 310, 315, 320,
-        ],
     },
     "hosts": [
-        # "vlans" = la whitelist EFECTIVA del CHR = su macro de host
-        # {$site-a.VLAN.MATCHES} (leida de la base de site-a el 2026-10-21). El
-        # mapper solo publica VLANs que la LLD de ese host va a aceptar: la
-        # macro del host manda sobre la union del template.
-        {"zabbix_host": "SW-EDGE-501", "ip": "192.0.2.57", "vlans": []},
-        {"zabbix_host": "SW-EDGE-502", "ip": "192.0.2.59", "vlans": [175, 190, 220, 225, 235]},
-        {"zabbix_host": "SW-EDGE-601", "ip": "192.0.2.60", "vlans": [125, 130, 135, 150, 165, 170]},
-        {"zabbix_host": "SW-EDGE-602", "ip": "192.0.2.61", "vlans": [111, 115, 185, 205, 210, 230]},
-        {"zabbix_host": "SW-EDGE-701", "ip": "192.0.2.62", "vlans": [100, 120, 160, 180, 240, 245]},
-        {"zabbix_host": "SW-EDGE-702", "ip": "192.0.2.64",
-         "vlans": [105, 110, 140, 145, 155, 195, 215, 310, 315, 320]},
-        {"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65",
-         "vlans": [250, 301, 305, 175, 190, 220, 225, 235]},
+        {"zabbix_host": "SW-EDGE-501", "ip": "192.0.2.57"},
+        {"zabbix_host": "SW-EDGE-502", "ip": "192.0.2.59"},
+        {"zabbix_host": "SW-EDGE-601", "ip": "192.0.2.60"},
+        {"zabbix_host": "SW-EDGE-602", "ip": "192.0.2.61"},
+        {"zabbix_host": "SW-EDGE-701", "ip": "192.0.2.62"},
+        {"zabbix_host": "SW-EDGE-702", "ip": "192.0.2.64"},
+        {"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65"},
     ],
 }
 
@@ -217,19 +205,16 @@ def parse_walk_output(text, oid="1.3.6.1.2.1.2.2.1.2"):
 # --------------------------------------------------------------------------
 # Filtro y payload
 # --------------------------------------------------------------------------
-def filter_vlans(rows, pattern=None, exclude_pattern=None, ids=None, host_ids=None):
-    """Deja solo las VLANs que el host debe monitorear.
+def filter_vlans(rows, pattern=None, exclude_pattern=None):
+    """Deja solo las interfaces VLAN que el router tiene.
 
-    Tres filtros, en este orden:
-      1. `pattern` / `exclude_pattern`: el nombre de la interfaz.
-      2. `ids`: union de VLAN IDs de site-a (la del template).
-      3. `host_ids`: la whitelist EFECTIVA del CHR (su macro de host
-         {$site-a.VLAN.MATCHES}). Sin esta lista no hay filtro por host.
+    El mapper NO aplica ninguna lista de VLANs: la autoridad de que una VLAN
+    se monitorea en un CHR es la macro de host {$site-a.VLAN.MATCHES}, que
+    aplica el filtro de la LLD. Acá solo se descarta lo que no es una
+    interfaz de VLAN (por ejemplo el churn `pppoe-*`).
     """
     pattern_re = re.compile(pattern) if pattern else None
     exclude_re = re.compile(exclude_pattern) if exclude_pattern else None
-    whitelist = set(ids) if ids else None
-    host_whitelist = set(host_ids) if host_ids is not None else None
 
     vlans = []
     for index, name in rows:
@@ -237,13 +222,7 @@ def filter_vlans(rows, pattern=None, exclude_pattern=None, ids=None, host_ids=No
             continue
         if exclude_re and exclude_re.match(name):
             continue
-        match = re.match(r"^vlan(\d+)$", name)
-        if not match:
-            continue
-        vlan_id = int(match.group(1))
-        if whitelist is not None and vlan_id not in whitelist:
-            continue
-        if host_whitelist is not None and vlan_id not in host_whitelist:
+        if not name.startswith("vlan"):
             continue
         vlans.append({"ifdescr": name, "ifname": name, "index": index})
     vlans.sort(key=lambda entry: entry["index"])
@@ -291,13 +270,7 @@ def publish(zabbix_config, zabbix_host, payload):
 # Flujo por host
 # --------------------------------------------------------------------------
 def collect_host(host_config, config, walker=run_snmpwalk):
-    """Walk + filtro de un CHR.
-
-    Devuelve (a_publicar, fuera_de_alcance, filas, error):
-      - a_publicar: VLANs que el host debe monitorear (patron + union + macro del host)
-      - fuera_de_alcance: VLANs que el router tiene pero la macro del host no
-        acepta (no se publican; se loguean para que el operador las revise)
-    """
+    """Walk + filtro de un CHR. Devuelve (vlan_publicadas, filas, error)."""
     snmp = config.get("snmp", {})
     vlan = config.get("vlan", {})
     community = host_config.get("community") or snmp.get("community", "public")
@@ -312,24 +285,14 @@ def collect_host(host_config, config, walker=run_snmpwalk):
             binary=snmp.get("binary", "snmpwalk"),
         )
     except Exception as exc:  # un CHR caido no debe tumbar al resto
-        return [], [], 0, str(exc)
+        return [], 0, str(exc)
     rows = parse_walk_output(raw, snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
-    host_ids = host_config.get("vlans")
     vlans = filter_vlans(
         rows,
         pattern=vlan.get("pattern"),
         exclude_pattern=vlan.get("exclude_pattern"),
-        ids=vlan.get("ids"),
-        host_ids=host_ids,
     )
-    out_of_scope = []
-    if host_ids is not None:
-        published = {vlan["ifdescr"] for vlan in vlans}
-        out_of_scope = sorted(
-            name for _index, name in rows
-            if name.startswith("vlan") and name not in published and name not in out_of_scope
-        )
-    return vlans, out_of_scope, len(rows), None
+    return vlans, len(rows), None
 
 
 def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
@@ -344,20 +307,18 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
             print("[%s] %s: sin IP configurada -> se saltea (completar la config)" % (stamp, name))
             failures += 1
             continue
-        vlans, out_of_scope, rows, error = collect_host(host, config, walker=walker)
+        vlans, rows, error = collect_host(host, config, walker=walker)
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         if error:
             print("[%s] %s (%s): ERROR %s" % (stamp, name, host["ip"], error))
             failures += 1
             continue
         payload = build_payload(vlans)
+        published = ", ".join(vlan["ifdescr"] for vlan in vlans) or "(ninguna)"
+        print("[%s] %s (%s): %d filas de ifTable, %d VLANs publicadas: %s" % (
+            stamp, name, host["ip"], rows, len(vlans), published))
         if verbose:
-            print("[%s] %s (%s): %d filas de ifTable, %d VLANs a publicar" % (
-                stamp, name, host["ip"], rows, len(vlans)))
-        if out_of_scope:
-            print("[%s] %s: en el router pero FUERA de la macro del host (no se publican, "
-                  "revisar si hay que ampliar la macro): %s" % (stamp, name, ", ".join(out_of_scope)))
-        print("[%s] %s: %s" % (stamp, name, payload))
+            print("[%s] %s: %s" % (stamp, name, payload))
         if dry_run:
             continue
         if not vlans:

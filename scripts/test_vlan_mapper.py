@@ -27,10 +27,13 @@ import vlan_mapper  # noqa: E402
 
 FIXTURE = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_703_ifdescr_walk.txt")
 
+# El mapper publica TODAS las interfaces vlan* del router (la macro de host
+# decide cuales se monitorean: el filtro de la LLD las rechaza).
 EXPECTED_VLANS = [
     {"ifdescr": "vlan250", "ifname": "vlan250", "index": 98},
     {"ifdescr": "vlan301", "ifname": "vlan301", "index": 99},
     {"ifdescr": "vlan305", "ifname": "vlan305", "index": 100},
+    {"ifdescr": "vlan999", "ifname": "vlan999", "index": 101},
     {"ifdescr": "vlan175", "ifname": "vlan175", "index": 102},
     {"ifdescr": "vlan190", "ifname": "vlan190", "index": 103},
     {"ifdescr": "vlan220", "ifname": "vlan220", "index": 104},
@@ -59,12 +62,7 @@ class TestVlanMapper(unittest.TestCase):
     def setUp(self):
         self.text = fixture_text()
         self.config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
-        self.config["hosts"] = [{
-            "zabbix_host": "SW-EDGE-703",
-            "ip": "192.0.2.65",
-            # macro de host {$site-a.VLAN.MATCHES} de 703 (leida de la base el 2026-10-21)
-            "vlans": [250, 301, 305, 175, 190, 220, 225, 235],
-        }]
+        self.config["hosts"] = [{"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65"}]
 
     # --- parser -----------------------------------------------------------
     def test_fixture_shape(self):
@@ -132,7 +130,6 @@ class TestVlanMapper(unittest.TestCase):
             rows,
             pattern=self.config["vlan"]["pattern"],
             exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
         )
         self.assertEqual(vlans, EXPECTED_VLANS)
 
@@ -142,71 +139,55 @@ class TestVlanMapper(unittest.TestCase):
             rows,
             pattern=self.config["vlan"]["pattern"],
             exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
         )
         names = [vlan["ifdescr"] for vlan in vlans]
         self.assertEqual(len([name for name in names if name.startswith("pppoe-")]), 0)
-        self.assertEqual(len(vlans), 8)
+        self.assertEqual(len(vlans), 9)
 
-    def test_filter_drops_vlan_outside_whitelist(self):
-        """vlan999 (ifIndex 101) matchea el pattern pero no esta en la whitelist."""
+    def test_mapper_does_not_filter_by_vlan_list(self):
+        """El mapper no lleva listas de VLANs: publica todas las vlan* del router.
+
+        La autoridad de que se monitoree una VLAN es la macro de host
+        {$site-a.VLAN.MATCHES} (filtro de la LLD), no el mapper: agregar una
+        VLAN a un CHR tiene que ser tocar UNA sola lista.
+        """
         rows = vlan_mapper.parse_walk_output(self.text)
         vlans = vlan_mapper.filter_vlans(
             rows,
             pattern=self.config["vlan"]["pattern"],
             exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
         )
-        self.assertNotIn("vlan999", [vlan["ifdescr"] for vlan in vlans])
+        self.assertIn("vlan999", [vlan["ifdescr"] for vlan in vlans])
+        self.assertNotIn("ids", self.config["vlan"])
+        for host in self.config["hosts"]:
+            self.assertNotIn("vlans", host)
 
-    # --- coherencia con la macro del host ---------------------------------
-    def test_host_scope_filter_drops_vlans_outside_the_host_macro(self):
-        """La macro del host manda: vlan999 no esta en la whitelist de 703."""
+    # --- la macro del host es la autoridad (el mapper no filtra) -----------
+    def test_mapper_publishes_every_vlan_the_router_has(self):
+        """El mapper publica todas las vlan* del router, sin lista propia.
+
+        El filtro de la LLD (macro de host {$site-a.VLAN.MATCHES}) es el que
+        decide que se monitorea; publicar de mas es inofensivo.
+        """
         rows = vlan_mapper.parse_walk_output(self.text)
         vlans = vlan_mapper.filter_vlans(
             rows,
             pattern=self.config["vlan"]["pattern"],
             exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
-            host_ids=self.config["hosts"][0]["vlans"],
         )
         self.assertEqual(vlans, EXPECTED_VLANS)
+        self.assertIn("vlan999", [v["ifdescr"] for v in vlans])
 
-    def test_host_scope_filter_keeps_only_the_host_vlans(self):
-        """Un host que solo monitorea vlan250 no puede recibir las demas."""
-        rows = vlan_mapper.parse_walk_output(self.text)
-        vlans = vlan_mapper.filter_vlans(
-            rows,
-            pattern=self.config["vlan"]["pattern"],
-            exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
-            host_ids=[250],
-        )
-        self.assertEqual([v["ifdescr"] for v in vlans], ["vlan250"])
-
-    def test_no_host_scope_means_no_host_filter(self):
-        """Sin lista por host (config a mano) no se aplica ese filtro."""
-        rows = vlan_mapper.parse_walk_output(self.text)
-        vlans = vlan_mapper.filter_vlans(
-            rows,
-            pattern=self.config["vlan"]["pattern"],
-            exclude_pattern=self.config["vlan"]["exclude_pattern"],
-            ids=self.config["vlan"]["ids"],
-            host_ids=None,
-        )
-        # vlan999 no esta en la union de site-a, asi que la deja la union (no el host)
-        self.assertEqual(len(vlans), 8)
-        self.assertNotIn("vlan999", [v["ifdescr"] for v in vlans])
     # --- payload ----------------------------------------------------------
     def test_payload_shape_is_the_t1_contract(self):
-        vlans, _out, _rows, error = vlan_mapper.collect_host(
+        vlans, _rows, error = vlan_mapper.collect_host(
             self.config["hosts"][0], self.config, walker=fake_walker(self.text)
         )
         self.assertIsNone(error)
         payload = vlan_mapper.build_payload(vlans)
         parsed = json.loads(payload)
         self.assertIsInstance(parsed, list, "el JSON debe ser un array")
-        self.assertEqual(len(parsed), 8)
+        self.assertEqual(len(parsed), 9)
         for entry in parsed:
             self.assertEqual(sorted(entry.keys()), ["ifdescr", "ifname", "index"])
             self.assertIsInstance(entry["index"], int)
@@ -214,7 +195,7 @@ class TestVlanMapper(unittest.TestCase):
 
     def test_payload_is_small(self):
         """El motivo de todo el diseno: el JSON tiene que entrar de sobra en 64 KB."""
-        vlans, _out, _rows, _error = vlan_mapper.collect_host(
+        vlans, _rows, _error = vlan_mapper.collect_host(
             self.config["hosts"][0], self.config, walker=fake_walker(self.text)
         )
         payload = vlan_mapper.build_payload(vlans)
