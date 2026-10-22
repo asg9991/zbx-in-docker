@@ -48,10 +48,17 @@ import time
 # --------------------------------------------------------------------------
 # Configuracion por defecto: los 7 CHR de site-a.
 #
-# La IP de 701 y 702 NO esta documentada en el repo: se dejan en null y el
-# script los saltea con un aviso hasta que se completen (no se inventa).
-# Las IPs verificadas salen de odd/tasks/enlace-site-a-norte-40g.md y
-# odd/tasks/chr-snmp-walk-carga.md.
+# IPs y hostids verificados contra la base de site-a (tabla `interface`) el
+# 2026-10-21. OJO: el nombre->hostid de 601/602 esta invertido en varias
+# notas del repo; la fuente de verdad es la base:
+#   SW-EDGE-501 = 10844 = 192.0.2.57
+#   SW-EDGE-502 = 10845 = 192.0.2.59
+#   SW-EDGE-601 = 10848 = 192.0.2.60
+#   SW-EDGE-602 = 10846 = 192.0.2.61
+#   SW-EDGE-701 = 10877 = 192.0.2.62
+#   SW-EDGE-702 = 10878 = 192.0.2.64
+#   SW-EDGE-703 = 10879 = 192.0.2.65
+# 501 y 502 no responden SNMP (estan caidos): el mapper los saltea con error.
 # --------------------------------------------------------------------------
 DEFAULT_CONFIG = {
     "zabbix": {
@@ -78,6 +85,9 @@ DEFAULT_CONFIG = {
         "exclude_pattern": "^pppoe-",
         # Union de VLAN IDs de site-a: la misma whitelist que usa el filtro de
         # la LLD ({$site-a.VLAN.MATCHES}). Vacio = solo el pattern.
+        # Hace falta la whitelist y no solo el pattern: en 701/702/703 existe
+        # una "vlan499" (ifIndex 89/95) que matchea el pattern pero NO es una
+        # VLAN de cliente.
         "ids": [
             100, 105, 110, 111, 115, 120, 125, 130, 135, 140, 145, 150, 155,
             160, 165, 170, 175, 180, 185, 190, 195, 205, 210, 215, 220, 225,
@@ -85,13 +95,19 @@ DEFAULT_CONFIG = {
         ],
     },
     "hosts": [
-        {"zabbix_host": "SW-EDGE-501", "ip": "192.0.2.57"},
-        {"zabbix_host": "SW-EDGE-502", "ip": "192.0.2.59"},
-        {"zabbix_host": "SW-EDGE-601", "ip": "192.0.2.60"},
-        {"zabbix_host": "SW-EDGE-602", "ip": "192.0.2.61"},
-        {"zabbix_host": "SW-EDGE-701", "ip": None},
-        {"zabbix_host": "SW-EDGE-702", "ip": None},
-        {"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65"},
+        # "vlans" = la whitelist EFECTIVA del CHR = su macro de host
+        # {$site-a.VLAN.MATCHES} (leida de la base de site-a el 2026-10-21). El
+        # mapper solo publica VLANs que la LLD de ese host va a aceptar: la
+        # macro del host manda sobre la union del template.
+        {"zabbix_host": "SW-EDGE-501", "ip": "192.0.2.57", "vlans": []},
+        {"zabbix_host": "SW-EDGE-502", "ip": "192.0.2.59", "vlans": [175, 190, 220, 225, 235]},
+        {"zabbix_host": "SW-EDGE-601", "ip": "192.0.2.60", "vlans": [125, 130, 135, 150, 165, 170]},
+        {"zabbix_host": "SW-EDGE-602", "ip": "192.0.2.61", "vlans": [111, 115, 185, 205, 210, 230]},
+        {"zabbix_host": "SW-EDGE-701", "ip": "192.0.2.62", "vlans": [100, 120, 160, 180, 240, 245]},
+        {"zabbix_host": "SW-EDGE-702", "ip": "192.0.2.64",
+         "vlans": [105, 110, 140, 145, 155, 195, 215, 310, 315, 320]},
+        {"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65",
+         "vlans": [250, 301, 305, 175, 190, 220, 225, 235]},
     ],
 }
 
@@ -121,15 +137,17 @@ def load_config(path=None):
 # --------------------------------------------------------------------------
 # SNMP
 # --------------------------------------------------------------------------
-def run_snmpwalk(ip, community, oid, version=2, timeout=15, retries=1, binary="snmpwalk"):
-    """Walk de UNA columna por SNMP. Devuelve la salida cruda (texto).
+# net-snmp no acepta "-v2": para SNMPv2c la sintaxis es "-v 2c".
+SNMP_VERSION_FLAGS = {1: "1", 2: "2c", 3: "3"}
 
-    Se separa en su propia funcion para que el test pueda inyectar un walker
-    falso y no toque la red.
-    """
-    command = [
+
+def build_snmpwalk_command(ip, community, oid, version=2, timeout=15, retries=1,
+                            binary="snmpwalk"):
+    """Arma el comando snmpwalk de UNA columna (ifDescr)."""
+    version_flag = SNMP_VERSION_FLAGS.get(int(version), "2c")
+    return [
         binary,
-        "-v%s" % version,
+        "-v", version_flag,
         "-c", community,
         "-t", str(timeout),
         "-r", str(retries),
@@ -137,18 +155,42 @@ def run_snmpwalk(ip, community, oid, version=2, timeout=15, retries=1, binary="s
         ip,
         oid,
     ]
+
+
+def run_snmpwalk(ip, community, oid, version=2, timeout=15, retries=1, binary="snmpwalk"):
+    """Walk de UNA columna por SNMP. Devuelve la salida cruda (texto).
+
+    Se separa en su propia funcion para que el test pueda inyectar un walker
+    falso y no toque la red.
+    """
+    command = build_snmpwalk_command(ip, community, oid, version, timeout, retries, binary)
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError("snmpwalk fallo (rc=%d): %s" % (result.returncode, result.stderr.strip()))
     return result.stdout
 
 
+def normalize_oid(raw_oid):
+    """Normaliza el OID de la salida de snmpwalk a forma numerica.
+
+    net-snmp imprime distinto segun la version y los MIBs cargados:
+        .1.3.6.1.2.1.2.2.1.2.98      (punto inicial)
+        iso.3.6.1.2.1.2.2.1.2.98     (net-snmp 5.9 en site-a: raiz "iso" siempre)
+        1.3.6.1.2.1.2.2.1.2.98       (numerico pelado)
+    """
+    oid = raw_oid.strip().strip('"')
+    # las raices con nombre se vuelven a su numero: iso. -> 1., ccitt. -> 0.
+    for root, numeric in (("joint-iso-ccitt.", "2."), ("ccitt.", "0."), ("iso.", "1.")):
+        if oid.startswith(root):
+            oid = numeric + oid[len(root):]
+            break
+    return oid.lstrip(".")
+
+
 def parse_walk_output(text, oid="1.3.6.1.2.1.2.2.1.2"):
     """Parsea la salida de `snmpwalk -Oq` -> lista de (ifIndex, nombre).
 
-    Acepta lineas con o sin punto inicial:
-        .1.3.6.1.2.1.2.2.1.2.98 "vlan250"
-        1.3.6.1.2.1.2.2.1.2.98 "vlan250"
+    Acepta las tres formas de OID que usa net-snmp (ver normalize_oid).
     """
     prefix = oid.strip(".") + "."
     rows = []
@@ -159,8 +201,7 @@ def parse_walk_output(text, oid="1.3.6.1.2.1.2.2.1.2"):
         match = re.match(r'^"?(\S+)"?\s+(.*)$', line)
         if not match:
             continue
-        raw_oid, raw_value = match.group(1), match.group(2).strip()
-        raw_oid = raw_oid.lstrip(".")
+        raw_oid, raw_value = normalize_oid(match.group(1)), match.group(2).strip()
         if not raw_oid.startswith(prefix):
             continue
         try:
@@ -176,12 +217,19 @@ def parse_walk_output(text, oid="1.3.6.1.2.1.2.2.1.2"):
 # --------------------------------------------------------------------------
 # Filtro y payload
 # --------------------------------------------------------------------------
-def filter_vlans(rows, pattern=None, exclude_pattern=None, ids=None):
-    """Deja solo las VLANs: nombre que matchea el pattern, no excluido y con
-    el ID en la whitelist (si hay whitelist)."""
+def filter_vlans(rows, pattern=None, exclude_pattern=None, ids=None, host_ids=None):
+    """Deja solo las VLANs que el host debe monitorear.
+
+    Tres filtros, en este orden:
+      1. `pattern` / `exclude_pattern`: el nombre de la interfaz.
+      2. `ids`: union de VLAN IDs de site-a (la del template).
+      3. `host_ids`: la whitelist EFECTIVA del CHR (su macro de host
+         {$site-a.VLAN.MATCHES}). Sin esta lista no hay filtro por host.
+    """
     pattern_re = re.compile(pattern) if pattern else None
     exclude_re = re.compile(exclude_pattern) if exclude_pattern else None
     whitelist = set(ids) if ids else None
+    host_whitelist = set(host_ids) if host_ids is not None else None
 
     vlans = []
     for index, name in rows:
@@ -194,6 +242,8 @@ def filter_vlans(rows, pattern=None, exclude_pattern=None, ids=None):
             continue
         vlan_id = int(match.group(1))
         if whitelist is not None and vlan_id not in whitelist:
+            continue
+        if host_whitelist is not None and vlan_id not in host_whitelist:
             continue
         vlans.append({"ifdescr": name, "ifname": name, "index": index})
     vlans.sort(key=lambda entry: entry["index"])
@@ -241,7 +291,13 @@ def publish(zabbix_config, zabbix_host, payload):
 # Flujo por host
 # --------------------------------------------------------------------------
 def collect_host(host_config, config, walker=run_snmpwalk):
-    """Walk + filtro de un CHR. Devuelve (vlans, filas_parseadas, error)."""
+    """Walk + filtro de un CHR.
+
+    Devuelve (a_publicar, fuera_de_alcance, filas, error):
+      - a_publicar: VLANs que el host debe monitorear (patron + union + macro del host)
+      - fuera_de_alcance: VLANs que el router tiene pero la macro del host no
+        acepta (no se publican; se loguean para que el operador las revise)
+    """
     snmp = config.get("snmp", {})
     vlan = config.get("vlan", {})
     community = host_config.get("community") or snmp.get("community", "public")
@@ -256,22 +312,31 @@ def collect_host(host_config, config, walker=run_snmpwalk):
             binary=snmp.get("binary", "snmpwalk"),
         )
     except Exception as exc:  # un CHR caido no debe tumbar al resto
-        return [], 0, str(exc)
+        return [], [], 0, str(exc)
     rows = parse_walk_output(raw, snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
+    host_ids = host_config.get("vlans")
     vlans = filter_vlans(
         rows,
         pattern=vlan.get("pattern"),
         exclude_pattern=vlan.get("exclude_pattern"),
         ids=vlan.get("ids"),
+        host_ids=host_ids,
     )
-    return vlans, len(rows), None
+    out_of_scope = []
+    if host_ids is not None:
+        published = {vlan["ifdescr"] for vlan in vlans}
+        out_of_scope = sorted(
+            name for _index, name in rows
+            if name.startswith("vlan") and name not in published and name not in out_of_scope
+        )
+    return vlans, out_of_scope, len(rows), None
 
 
 def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
     """Procesa todos los hosts. Devuelve el codigo de salida (0 = todo bien)."""
     failures = 0
-    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
     for host in config.get("hosts", []):
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         name = host.get("zabbix_host")
         if only and name != only:
             continue
@@ -279,14 +344,19 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, verbose=False):
             print("[%s] %s: sin IP configurada -> se saltea (completar la config)" % (stamp, name))
             failures += 1
             continue
-        vlans, rows, error = collect_host(host, config, walker=walker)
+        vlans, out_of_scope, rows, error = collect_host(host, config, walker=walker)
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         if error:
             print("[%s] %s (%s): ERROR %s" % (stamp, name, host["ip"], error))
             failures += 1
             continue
         payload = build_payload(vlans)
         if verbose:
-            print("[%s] %s (%s): %d filas de ifTable, %d VLANs" % (stamp, name, host["ip"], rows, len(vlans)))
+            print("[%s] %s (%s): %d filas de ifTable, %d VLANs a publicar" % (
+                stamp, name, host["ip"], rows, len(vlans)))
+        if out_of_scope:
+            print("[%s] %s: en el router pero FUERA de la macro del host (no se publican, "
+                  "revisar si hay que ampliar la macro): %s" % (stamp, name, ", ".join(out_of_scope)))
         print("[%s] %s: %s" % (stamp, name, payload))
         if dry_run:
             continue

@@ -57,9 +57,12 @@ CONTRATO VERIFICADO (Zabbix 7.4.13)
 Ejecucion:  python3 scripts/lab_lld_shape_test.py
 Salida:     exit 0 si el contrato canonico quedo verificado.
 
-Nota: el respondedor SNMP minimo queda corriendo dentro del container
-`zabbix-server` (para que los items del host de prueba sigan collectando).
-Se corta con:  docker exec zabbix-server pkill -f VLAB_LLD_MINI_SNMP
+Nota: el respondedor SNMP minimo se levanta y se baja solo (dentro del
+container `zabbix-server`). Al terminar, los items del host de prueba quedan
+sin SNMP: es esperado, es un banco de pruebas.
+Para borrar el host de prueba del lab:
+    host.delete {"hostids": ["<hostid del host vlan-lld-shape-lab>"]}
+(cuidado: eso borra items, rules y prototipos del host, no el grupo)
 """
 
 import json
@@ -760,18 +763,23 @@ def main():
     interface_id = ensure_snmp_interface(token, host_id)
     start_mini_snmp()
 
-    results = []
-    for case in CASES:
-        print("\n--- caso %s: %s" % (case["id"], case["title"]))
-        result = run_case(token, host_id, interface_id, case)
-        results.append(result)
-        print("    %s -> %s" % ("OK" if result["ok"] else "FALLA", result["detail"]))
+    try:
+        results = []
+        for case in CASES:
+            print("\n--- caso %s: %s" % (case["id"], case["title"]))
+            result = run_case(token, host_id, interface_id, case)
+            results.append(result)
+            print("    %s -> %s" % ("OK" if result["ok"] else "FALLA", result["detail"]))
 
-    # Integracion con los nombres de produccion.
-    print("\n--- integracion: net.vlan.map + net.vlan.discovery")
-    integration = run_integration(token, host_id, interface_id)
-    results.append(integration)
-    print("    %s -> %s" % ("OK" if integration["ok"] else "FALLA", integration["detail"]))
+        # Integracion con los nombres de produccion.
+        print("\n--- integracion: net.vlan.map + net.vlan.discovery")
+        integration = run_integration(token, host_id, interface_id)
+        results.append(integration)
+        print("    %s -> %s" % ("OK" if integration["ok"] else "FALLA", integration["detail"]))
+    finally:
+        # El respondedor SNMP minimo es solo para este test: se baja solo.
+        stop_mini_snmp()
+        print("[snmp] respondedor minimo bajado (los items del host de prueba quedan sin SNMP)")
 
     # Verificacion de datos sobre el caso canonico.
     canonical = next(r for r in results if r["id"] == "canonical")

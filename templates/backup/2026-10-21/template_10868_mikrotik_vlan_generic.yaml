@@ -1,0 +1,123 @@
+# Live export of Zabbix template 10868 ('Mikrotik VLAN Generic by SNMP').
+# Source: Zabbix 7.4 database (item_preproc / item_condition / item_discovery).
+# The 7.4 API does not expose LLD preprocessing, filters or prototypes.
+# Template hosts: 
+zabbix_export:
+  version: '7.4'
+  templates:
+    - uuid: cd29e4cf03ba4606ba756c09b64d2baf
+      template: Mikrotik VLAN Generic by SNMP
+      name: Mikrotik VLAN Generic by SNMP
+      description: |-
+        Generic reusable template: discovers MikroTik VLAN interfaces
+        (ifDescr == ifName == vlan<ID>, ifAlias empty) and graphs
+        64-bit HC In/Out octets as bits per second.
+        
+        Numeric OIDs only (poller has no MIBs):
+        In  .1.3.6.1.2.1.31.1.1.1.6.<idx>  (ifHCInOctets)
+        Out .1.3.6.1.2.1.31.1.1.1.10.<idx> (ifHCOutOctets)
+        
+        Discovery filter: {#IFDESCR} matches {$VLAN.IFDESCR.MATCHES}
+        (default ^vlan[0-9]+$); pppoe-* excluded via NOT_MATCHES filters.
+        Override the macros at host/template level to adjust.
+      items:
+        - uuid: 6bff5679745847838305e3d43484477a
+          name: 'Mikrotik VLAN: SNMP walk VLAN interfaces'
+          type: SNMP_AGENT
+          key: net.vlan.walk
+          snmp_oid: 'walk[1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10]'
+          delay: 1m
+          value_type: TEXT
+          description: 'Master walk feeding VLAN discovery and 64-bit HC counters (IF-MIB, numeric OIDs).'
+      discovery_rules:
+        - uuid: da10ef5798234fe09e9ec611ef468ccc
+          name: VLAN interfaces discovery
+          type: DEPENDENT
+          key: net.vlan.discovery
+          lifetime: 7d
+          description: 'Discovers VLAN interfaces (ifDescr vlan<ID>); excludes pppoe-* churn.'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#IFDESCR}'
+                - 1.3.6.1.2.1.2.2.1.2
+                - '0'
+                - '{#IFNAME}'
+                - 1.3.6.1.2.1.31.1.1.1.1
+                - '0'
+                - '{#IFALIAS}'
+                - 1.3.6.1.2.1.31.1.1.1.18
+                - '0'
+                - '{#IFTYPE}'
+                - 1.3.6.1.2.1.2.2.1.3
+                - '0'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1h
+          master_item:
+            key: net.vlan.walk
+          item_prototypes:
+            - uuid: b977fe8e6c914ab3a0ab522765cc3e56
+              name: 'VLAN {#IFDESCR}: Bits received'
+              type: DEPENDENT
+              key: 'net.vlan.in[ifHCInOctets.{#SNMPINDEX}]'
+              value_type: UNSIGNED
+              units: bps
+              history: 31d
+              trends: 365d
+              description: |-
+                IF-MIB ifHCInOctets (.1.3.6.1.2.1.31.1.1.1.6), 64-bit.
+                Rate per second x8 = bits per second.
+              preprocessing:
+                - type: SNMP_WALK_VALUE
+                  parameters:
+                    - '1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}'
+                    - '0'
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              master_item:
+                key: net.vlan.walk
+            - uuid: 381178704a304421b25b064aedd9aa7c
+              name: 'VLAN {#IFDESCR}: Bits sent'
+              type: DEPENDENT
+              key: 'net.vlan.out[ifHCOutOctets.{#SNMPINDEX}]'
+              value_type: UNSIGNED
+              units: bps
+              history: 31d
+              trends: 365d
+              description: |-
+                IF-MIB ifHCOutOctets (.1.3.6.1.2.1.31.1.1.1.10), 64-bit.
+                Rate per second x8 = bits per second.
+              preprocessing:
+                - type: SNMP_WALK_VALUE
+                  parameters:
+                    - '1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}'
+                    - '0'
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              master_item:
+                key: net.vlan.walk
+          filters:
+            - macro: '{#IFDESCR}'
+              value: '{$VLAN.IFDESCR.MATCHES}'
+              op: MATCHES_REGEX
+            - macro: '{#IFDESCR}'
+              value: '{$VLAN.IFDESCR.NOT_MATCHES}'
+              op: NOT_MATCHES_REGEX
+            - macro: '{#IFNAME}'
+              value: '{$VLAN.IFNAME.NOT_MATCHES}'
+              op: NOT_MATCHES_REGEX
+      macros:
+        - macro: '{$VLAN.IFDESCR.MATCHES}'
+          value: '^vlan[0-9]+$'
+          description: 'LLD include: VLAN interfaces by ifDescr (== ifName == vlan<ID> on MikroTik).'
+        - macro: '{$VLAN.IFDESCR.NOT_MATCHES}'
+          value: '^pppoe-.*'
+          description: 'LLD exclude: pppoe churn by ifDescr.'
+        - macro: '{$VLAN.IFNAME.NOT_MATCHES}'
+          value: '^pppoe-.*'
+          description: 'LLD exclude: pppoe churn by ifName.'

@@ -59,7 +59,12 @@ class TestVlanMapper(unittest.TestCase):
     def setUp(self):
         self.text = fixture_text()
         self.config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
-        self.config["hosts"] = [{"zabbix_host": "SW-EDGE-703", "ip": "192.0.2.65"}]
+        self.config["hosts"] = [{
+            "zabbix_host": "SW-EDGE-703",
+            "ip": "192.0.2.65",
+            # macro de host {$site-a.VLAN.MATCHES} de 703 (leida de la base el 2026-10-21)
+            "vlans": [250, 301, 305, 175, 190, 220, 225, 235],
+        }]
 
     # --- parser -----------------------------------------------------------
     def test_fixture_shape(self):
@@ -90,6 +95,35 @@ class TestVlanMapper(unittest.TestCase):
     def test_parser_accepts_oid_sin_punto(self):
         rows = vlan_mapper.parse_walk_output('1.3.6.1.2.1.2.2.1.2.7 "vlan7"')
         self.assertEqual(rows, [(7, "vlan7")])
+
+    def test_parser_accepts_raiz_iso(self):
+        """net-snmp 5.9 en site-a imprime la raiz 'iso.' (no '.1.3.6...')."""
+        rows = vlan_mapper.parse_walk_output('iso.3.6.1.2.1.2.2.1.2.7 "vlan7"')
+        self.assertEqual(rows, [(7, "vlan7")])
+
+    def test_normalize_oid(self):
+        self.assertEqual(vlan_mapper.normalize_oid("iso.3.6.1.2.1.2.2.1.2.98"), "1.3.6.1.2.1.2.2.1.2.98")
+        self.assertEqual(vlan_mapper.normalize_oid(".1.3.6.1.2.1.2.2.1.2.98"), "1.3.6.1.2.1.2.2.1.2.98")
+        self.assertEqual(vlan_mapper.normalize_oid("1.3.6.1.2.1.2.2.1.2.98"), "1.3.6.1.2.1.2.2.1.2.98")
+
+    # --- comando snmpwalk ---------------------------------------------------
+    def test_snmpwalk_command_uses_valid_version_flag(self):
+        """net-snmp NO acepta '-v2': para v2c la sintaxis es '-v 2c'."""
+        command = vlan_mapper.build_snmpwalk_command("192.0.2.65", "public", "1.3.6.1.2.1.2.2.1.2")
+        self.assertIn("-v", command)
+        self.assertEqual(command[command.index("-v") + 1], "2c")
+        self.assertNotIn("-v2", command)
+
+    def test_snmpwalk_command_shape(self):
+        command = vlan_mapper.build_snmpwalk_command(
+            "192.0.2.65", "public", "1.3.6.1.2.1.2.2.1.2", version=2, timeout=30, retries=1)
+        self.assertEqual(command[0], "snmpwalk")
+        self.assertEqual(command[command.index("-c") + 1], "public")
+        self.assertEqual(command[command.index("-t") + 1], "30")
+        self.assertEqual(command[command.index("-r") + 1], "1")
+        self.assertIn("-Oq", command)
+        self.assertEqual(command[-2], "192.0.2.65")
+        self.assertEqual(command[-1], "1.3.6.1.2.1.2.2.1.2")
 
     # --- filtro -----------------------------------------------------------
     def test_filter_keeps_the_8_vlans(self):
@@ -125,9 +159,47 @@ class TestVlanMapper(unittest.TestCase):
         )
         self.assertNotIn("vlan999", [vlan["ifdescr"] for vlan in vlans])
 
+    # --- coherencia con la macro del host ---------------------------------
+    def test_host_scope_filter_drops_vlans_outside_the_host_macro(self):
+        """La macro del host manda: vlan999 no esta en la whitelist de 703."""
+        rows = vlan_mapper.parse_walk_output(self.text)
+        vlans = vlan_mapper.filter_vlans(
+            rows,
+            pattern=self.config["vlan"]["pattern"],
+            exclude_pattern=self.config["vlan"]["exclude_pattern"],
+            ids=self.config["vlan"]["ids"],
+            host_ids=self.config["hosts"][0]["vlans"],
+        )
+        self.assertEqual(vlans, EXPECTED_VLANS)
+
+    def test_host_scope_filter_keeps_only_the_host_vlans(self):
+        """Un host que solo monitorea vlan250 no puede recibir las demas."""
+        rows = vlan_mapper.parse_walk_output(self.text)
+        vlans = vlan_mapper.filter_vlans(
+            rows,
+            pattern=self.config["vlan"]["pattern"],
+            exclude_pattern=self.config["vlan"]["exclude_pattern"],
+            ids=self.config["vlan"]["ids"],
+            host_ids=[250],
+        )
+        self.assertEqual([v["ifdescr"] for v in vlans], ["vlan250"])
+
+    def test_no_host_scope_means_no_host_filter(self):
+        """Sin lista por host (config a mano) no se aplica ese filtro."""
+        rows = vlan_mapper.parse_walk_output(self.text)
+        vlans = vlan_mapper.filter_vlans(
+            rows,
+            pattern=self.config["vlan"]["pattern"],
+            exclude_pattern=self.config["vlan"]["exclude_pattern"],
+            ids=self.config["vlan"]["ids"],
+            host_ids=None,
+        )
+        # vlan999 no esta en la union de site-a, asi que la deja la union (no el host)
+        self.assertEqual(len(vlans), 8)
+        self.assertNotIn("vlan999", [v["ifdescr"] for v in vlans])
     # --- payload ----------------------------------------------------------
     def test_payload_shape_is_the_t1_contract(self):
-        vlans, _rows, error = vlan_mapper.collect_host(
+        vlans, _out, _rows, error = vlan_mapper.collect_host(
             self.config["hosts"][0], self.config, walker=fake_walker(self.text)
         )
         self.assertIsNone(error)
@@ -142,7 +214,7 @@ class TestVlanMapper(unittest.TestCase):
 
     def test_payload_is_small(self):
         """El motivo de todo el diseno: el JSON tiene que entrar de sobra en 64 KB."""
-        vlans, _rows, _error = vlan_mapper.collect_host(
+        vlans, _out, _rows, _error = vlan_mapper.collect_host(
             self.config["hosts"][0], self.config, walker=fake_walker(self.text)
         )
         payload = vlan_mapper.build_payload(vlans)
