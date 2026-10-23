@@ -271,6 +271,42 @@ class TestVlanMapper(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual([key for key, _payload in published], ["net.vlan.map"])
 
+    def test_ppp_walk_with_zero_rows_does_not_publish_ppp_but_keeps_the_vlans(self):
+        """Un walk PPP con 0 filas no publica PPP, pero si publica las VLANs.
+
+        El guard del mapper trata un walk PPP vacio como walk corto/fallido:
+        no publica el conteo (evita pisar el ultimo valor bueno con 0) y deja
+        intacto el lado VLAN.
+        """
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append((key, payload))
+            return True, "sent: 1"
+
+        def empty_ppp_walker(ip, community, oid, **kwargs):
+            assert oid == "1.3.6.1.4.1.14988.1.1.2.1.1.2", oid
+            return ""
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(self.config, walker=fake_walker(self.text),
+                                   ppp_walker=empty_ppp_walker)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertEqual([key for key, _payload in published], ["net.vlan.map"],
+                         "con 0 filas PPP solo se publica el mapa de VLANs")
+
+        vlans, _rows, ppp, error = vlan_mapper.collect_host(
+            self.config["hosts"][0], self.config, walker=fake_walker(self.text),
+            ppp_walker=empty_ppp_walker
+        )
+        self.assertIsNone(error)
+        self.assertIsNone(ppp, "con 0 filas PPP el resultado no debe traer conteo")
+        self.assertEqual(len(vlans), 9, "el lado VLAN no se toca")
+
     def test_key_for_each_purpose(self):
         zabbix = self.config["zabbix"]
         self.assertEqual(vlan_mapper.key_for(zabbix, "vlan_map"), "net.vlan.map")

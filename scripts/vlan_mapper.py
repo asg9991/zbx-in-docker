@@ -401,6 +401,12 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
                 binary=snmp.get("binary", "snmpwalk"),
             )
             ppp_rows = parse_walk_output(ppp_raw, ppp_cfg["session_oid"])
+            if not ppp_rows:
+                # Un CHR con servicio PPPoE activo nunca tiene 0 sesiones: un
+                # walk vacio significa que el OID no esta disponible o que el
+                # agente no respondio. No publicar 0 evita pisar el ultimo
+                # valor bueno con un dato falso (visto en 703 el 2026-10-22).
+                raise RuntimeError("el walk de sesiones PPP devolvio 0 filas (OID no disponible o agente sin respuesta)")
             ppp = {
                 "sessions": count_ppp_sessions(ppp_rows),
                 "dedicated": filter_dedicated(ppp_rows, ppp_cfg.get("whitelist")),
