@@ -116,8 +116,8 @@ DEFAULT_CONFIG = {
         "storage_descr_oid": "1.3.6.1.2.1.25.2.3.1.3",  # hrStorageDescr
         "storage_size_oid": "1.3.6.1.2.1.25.2.3.1.5",   # hrStorageSize
         "storage_used_oid": "1.3.6.1.2.1.25.2.3.1.6",   # hrStorageUsed
-        "ram_descr": "Memory",      # fila de RAM por su descr
-        "disk_index": 131072,       # fila del disco (como vfs.fs.pused[hrStorageSize.131072])
+        "ram_index": 65536,         # fila de RAM (main memory, convencion Mikrotik)
+        "disk_index": 131072,       # fila del disco (system disk)
     },
     "vlan": {
         # El mapper NO lleva listas de VLANs: la autoridad de que se monitorea
@@ -484,19 +484,18 @@ def collect_hw(host_config, config, hw_walker=run_snmpwalk):
 
     # Storage: RAM y disco sobre las 3 columnas de hrStorage.
     try:
-        descr = dict(parse_walk_output(walk(hw_cfg.get("storage_descr_oid",
-                                                        "1.3.6.1.2.1.25.2.3.1.3")),
-                                       hw_cfg["storage_descr_oid"]))
+        descr_oid = hw_cfg.get("storage_descr_oid", "1.3.6.1.2.1.25.2.3.1.3")
+        size_oid = hw_cfg.get("storage_size_oid", "1.3.6.1.2.1.25.2.3.1.5")
+        used_oid = hw_cfg.get("storage_used_oid", "1.3.6.1.2.1.25.2.3.1.6")
+        descr = dict(parse_walk_output(walk(descr_oid), descr_oid))
         size = {}
-        for index, value in parse_walk_output(walk(hw_cfg["storage_size_oid"]),
-                                              hw_cfg["storage_size_oid"]):
+        for index, value in parse_walk_output(walk(size_oid), size_oid):
             try:
                 size[index] = float(value)
             except (TypeError, ValueError):
                 continue
         used = {}
-        for index, value in parse_walk_output(walk(hw_cfg["storage_used_oid"]),
-                                              hw_cfg["storage_used_oid"]):
+        for index, value in parse_walk_output(walk(used_oid), used_oid):
             try:
                 used[index] = float(value)
             except (TypeError, ValueError):
@@ -507,23 +506,19 @@ def collect_hw(host_config, config, hw_walker=run_snmpwalk):
                 return round(used[index] / size[index] * 100, 1)
             return None
 
-        for index, row_name in descr.items():
-            if row_name == hw_cfg.get("ram_descr", "Memory"):
+        for row_key, config_key in (("ram_index", "ram_util"),
+                                    ("disk_index", "disk_pused")):
+            index = int(hw_cfg.get(row_key, 65536 if row_key == "ram_index" else 131072))
+            if index in descr:
                 value = pused(index)
                 if value is not None:
-                    hw["ram_util"] = value
+                    hw[config_key] = value
                 else:
-                    print("[hw] %s: la fila de RAM no tiene size/used -> no se publica" % name)
-        disk_index = int(hw_cfg.get("disk_index", 131072))
-        if disk_index in descr:
-            value = pused(disk_index)
-            if value is not None:
-                hw["disk_pused"] = value
+                    print("[hw] %s: la fila %s (%s) no tiene size/used -> no se publica"
+                          % (name, row_key, index))
             else:
-                print("[hw] %s: la fila del disco no tiene size/used -> no se publica" % name)
-        else:
-            print("[hw] %s: la fila del disco (%s) no esta en el walk -> no se publica"
-                  % (name, disk_index))
+                print("[hw] %s: la fila %s (%s) no esta en el walk -> no se publica"
+                      % (name, row_key, index))
     except Exception as exc:
         print("[hw] %s: fallo el walk de storage: %s" % (name, exc))
 

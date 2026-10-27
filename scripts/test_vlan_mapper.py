@@ -487,17 +487,18 @@ def iso_oid(oid):
 CPU_TEXT = "".join(
     "%s.%d %d\n" % (iso_oid(CPU_OID), i, 10 if i <= 9 else 20) for i in range(1, 19)
 )
-# hrStorage: fila 1 = "Memory" (RAM), fila 131072 = "System flash" (disco).
+# hrStorage real de un CHR (medido en 704): fila 65536 = "main memory",
+# fila 131072 = "system disk". El mapper matchea por INDICE, no por descr.
 STORAGE_DESCR_TEXT = (
-    "%s.1 \"Memory\"\n"
-    "%s.131072 \"System flash\"\n" % (iso_oid(STORAGE_DESCR_OID), iso_oid(STORAGE_DESCR_OID))
+    "%s.65536 \"main memory\"\n"
+    "%s.131072 \"system disk\"\n" % (iso_oid(STORAGE_DESCR_OID), iso_oid(STORAGE_DESCR_OID))
 )
 STORAGE_SIZE_TEXT = (
-    "%s.1 8192000\n"
+    "%s.65536 8192000\n"
     "%s.131072 60416\n" % (iso_oid(STORAGE_SIZE_OID), iso_oid(STORAGE_SIZE_OID))
 )
 STORAGE_USED_TEXT = (
-    "%s.1 1048576\n"
+    "%s.65536 1048576\n"
     "%s.131072 32000\n" % (iso_oid(STORAGE_USED_OID), iso_oid(STORAGE_USED_OID))
 )
 
@@ -557,7 +558,7 @@ class HwTrapperTest(unittest.TestCase):
     def test_missing_memory_row_skips_ram_only(self):
         hw = vlan_mapper.collect_hw(
             self.config["hosts"][0], self.config,
-            hw_walker=fake_hw_walker(descr_text="%s.131072 \"System flash\"\n" % iso_oid(STORAGE_DESCR_OID)))
+            hw_walker=fake_hw_walker(descr_text="%s.131072 \"system disk\"\n" % iso_oid(STORAGE_DESCR_OID)))
         self.assertNotIn("ram_util", hw)
         self.assertIn("disk_pused", hw)
         self.assertIn("cpu_avg", hw)
@@ -565,7 +566,7 @@ class HwTrapperTest(unittest.TestCase):
     def test_missing_disk_row_skips_disk_only(self):
         hw = vlan_mapper.collect_hw(
             self.config["hosts"][0], self.config,
-            hw_walker=fake_hw_walker(descr_text="%s.1 \"Memory\"\n" % iso_oid(STORAGE_DESCR_OID)))
+            hw_walker=fake_hw_walker(descr_text="%s.65536 \"main memory\"\n" % iso_oid(STORAGE_DESCR_OID)))
         self.assertNotIn("disk_pused", hw)
         self.assertIn("ram_util", hw)
 
