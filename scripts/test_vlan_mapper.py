@@ -464,5 +464,190 @@ class TestVlanMapper(unittest.TestCase):
         self.assertEqual(vlan_mapper.run(config, dry_run=True), 1)
 
 
+# ==========================================================================
+# hw: CPU / disco / RAM por trapper (piloto 704)
+#
+# El mapper camina hrProcessorLoad (1 columna) y 3 columnas de hrStorage
+# (tablas chicas, nada comparable a la ifTable) y publica TRES escalares
+# float con el mismo guard del PPP: walk fallido o 0 filas -> no publica.
+# Deshabilitado por defecto; se activa por host con "hw": true.
+# ==========================================================================
+
+CPU_OID = "1.3.6.1.2.1.25.3.3.1.2"
+STORAGE_DESCR_OID = "1.3.6.1.2.1.25.2.3.1.3"
+STORAGE_SIZE_OID = "1.3.6.1.2.1.25.2.3.1.5"
+STORAGE_USED_OID = "1.3.6.1.2.1.25.2.3.1.6"
+
+# net-snmp -Oq imprime el '1.' inicial como 'iso.': iso.3.6.1.2.1...
+def iso_oid(oid):
+    return "iso." + oid[2:]
+
+# 18 nucleos con media conocida: 9 nucleos a 10 % y 9 a 20 % -> 15.0
+# (formato `snmpwalk -Oq`: `oid valor` con un espacio)
+CPU_TEXT = "".join(
+    "%s.%d %d\n" % (iso_oid(CPU_OID), i, 10 if i <= 9 else 20) for i in range(1, 19)
+)
+# hrStorage: fila 1 = "Memory" (RAM), fila 131072 = "System flash" (disco).
+STORAGE_DESCR_TEXT = (
+    "%s.1 \"Memory\"\n"
+    "%s.131072 \"System flash\"\n" % (iso_oid(STORAGE_DESCR_OID), iso_oid(STORAGE_DESCR_OID))
+)
+STORAGE_SIZE_TEXT = (
+    "%s.1 8192000\n"
+    "%s.131072 60416\n" % (iso_oid(STORAGE_SIZE_OID), iso_oid(STORAGE_SIZE_OID))
+)
+STORAGE_USED_TEXT = (
+    "%s.1 1048576\n"
+    "%s.131072 32000\n" % (iso_oid(STORAGE_USED_OID), iso_oid(STORAGE_USED_OID))
+)
+
+HW_KEYS = ["system.hw.cpu.avg", "system.hw.disk.pused", "system.hw.ram.util"]
+
+
+def generic_vlan_walker():
+    """Walker de ifDescr sin asercion de IP (los tests de hw usan el host 704)."""
+    def walker(ip, community, oid, **kwargs):
+        assert oid == "1.3.6.1.2.1.2.2.1.2", oid
+        return fixture_text()
+    return walker
+
+
+def fake_hw_walker(cpu_text=CPU_TEXT, descr_text=STORAGE_DESCR_TEXT,
+                   size_text=STORAGE_SIZE_TEXT, used_text=STORAGE_USED_TEXT):
+    """Walker de hw: una funcion para los 4 OIDs de hrProcessorLoad/hrStorage."""
+    mapping = {
+        CPU_OID: cpu_text,
+        STORAGE_DESCR_OID: descr_text,
+        STORAGE_SIZE_OID: size_text,
+        STORAGE_USED_OID: used_text,
+    }
+
+    def walker(ip, community, oid, **kwargs):
+        return mapping[oid]
+
+    return walker
+
+
+def broken_hw_walker(ip, community, oid, **kwargs):
+    raise RuntimeError("snmpwalk fallo: timeout")
+
+
+class HwTrapperTest(unittest.TestCase):
+    def setUp(self):
+        self.config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+
+    def collect(self, **kwargs):
+        return vlan_mapper.collect_hw(
+            self.config["hosts"][0], self.config, hw_walker=kwargs.get("hw_walker", fake_hw_walker())
+        )
+
+    def test_collect_hw_computes_the_three_metrics(self):
+        hw = self.collect()
+        # RAM: 1048576/8192000*100 = 12.8 ; disco: 32000/60416*100 = 53.0
+        self.assertEqual(hw, {"cpu_avg": 15.0, "ram_util": 12.8, "disk_pused": 53.0})
+
+    def test_cpu_walk_failure_keeps_storage(self):
+        hw = vlan_mapper.collect_hw(
+            self.config["hosts"][0], self.config,
+            hw_walker=fake_hw_walker(cpu_text=None))
+        self.assertNotIn("cpu_avg", hw)
+        self.assertIn("ram_util", hw)
+        self.assertIn("disk_pused", hw)
+
+    def test_missing_memory_row_skips_ram_only(self):
+        hw = vlan_mapper.collect_hw(
+            self.config["hosts"][0], self.config,
+            hw_walker=fake_hw_walker(descr_text="%s.131072 \"System flash\"\n" % iso_oid(STORAGE_DESCR_OID)))
+        self.assertNotIn("ram_util", hw)
+        self.assertIn("disk_pused", hw)
+        self.assertIn("cpu_avg", hw)
+
+    def test_missing_disk_row_skips_disk_only(self):
+        hw = vlan_mapper.collect_hw(
+            self.config["hosts"][0], self.config,
+            hw_walker=fake_hw_walker(descr_text="%s.1 \"Memory\"\n" % iso_oid(STORAGE_DESCR_OID)))
+        self.assertNotIn("disk_pused", hw)
+        self.assertIn("ram_util", hw)
+
+    def test_hw_disabled_by_default(self):
+        """Sin el flag, el mapper no camina ningun OID de hw ni publica nada."""
+        walked = []
+
+        def spy_walker(ip, community, oid, **kwargs):
+            walked.append(oid)
+            if oid == "1.3.6.1.2.1.2.2.1.2":
+                return fixture_text()
+            if oid == "1.3.6.1.4.1.14988.1.1.2.1.1.2":
+                return ppp_fixture_text()
+            raise AssertionError("oid de hw pedido con hw deshabilitado: %s" % oid)
+
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append(key)
+            return True, "sent: 1"
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(self.config, walker=spy_walker, ppp_walker=spy_walker)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertEqual([key for key in published if key.startswith("system.hw")], [],
+                         "hw deshabilitado: ninguna key de hw publicada")
+
+    def test_per_host_enable_publishes_three_scalars(self):
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        config["hosts"] = [{"zabbix_host": "SW-EDGE-704", "ip": "192.0.2.66", "hw": True}]
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append((key, payload))
+            return True, "sent: 1"
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(config, walker=generic_vlan_walker(),
+                                   ppp_walker=fake_ppp_walker(ppp_fixture_text()),
+                                   hw_walker=fake_hw_walker())
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        hw_keys = [key for key, _payload in published if key.startswith("system.hw")]
+        self.assertEqual(sorted(hw_keys), sorted(HW_KEYS))
+        payloads = {key: payload for key, payload in published if key.startswith("system.hw")}
+        self.assertEqual(float(payloads["system.hw.cpu.avg"]), 15.0)
+        self.assertEqual(float(payloads["system.hw.disk.pused"]), 53.0)
+        self.assertEqual(float(payloads["system.hw.ram.util"]), 12.8)
+
+    def test_hw_failure_does_not_break_vlan_and_ppp(self):
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        config["hosts"] = [{"zabbix_host": "SW-EDGE-704", "ip": "192.0.2.66", "hw": True}]
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append(key)
+            return True, "sent: 1"
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(config, walker=generic_vlan_walker(),
+                                   ppp_walker=fake_ppp_walker(ppp_fixture_text()),
+                                   hw_walker=broken_hw_walker)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0, "un fallo de hw no debe tumbar el lado VLAN/PPP")
+        self.assertNotIn("system.hw.cpu.avg", published)
+
+    def test_key_for_hw_purposes(self):
+        zabbix = self.config["zabbix"]
+        self.assertEqual(vlan_mapper.key_for(zabbix, "hw_cpu"), "system.hw.cpu.avg")
+        self.assertEqual(vlan_mapper.key_for(zabbix, "hw_disk"), "system.hw.disk.pused")
+        self.assertEqual(vlan_mapper.key_for(zabbix, "hw_ram"), "system.hw.ram.util")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

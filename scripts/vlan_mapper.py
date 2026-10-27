@@ -70,6 +70,11 @@ DEFAULT_CONFIG = {
             "vlan_map": "net.vlan.map",
             "ppp_count": "mikrotik.ppp.active.count",
             "ppp_map": "net.ppp.map",
+            # hw (piloto 704): CPU/disco/RAM publicados por el mapper para no
+            # caminar hrProcessorLoad/hrStorage desde Zabbix cada minuto.
+            "hw_cpu": "system.hw.cpu.avg",
+            "hw_disk": "system.hw.disk.pused",
+            "hw_ram": "system.hw.ram.util",
         },
         "docker_binary": "docker",
         "use_docker": True,
@@ -98,6 +103,21 @@ DEFAULT_CONFIG = {
         "retries": 1,
         "oid": "1.3.6.1.2.1.2.2.1.2",
         "binary": "snmpwalk",
+    },
+    # hw (CPU/disco/RAM por trapper). Deshabilitado por defecto: se activa por
+    # host con "hw": true en su entrada de "hosts" (o global con enabled).
+    # OIDs de tablas CHICAS: hrProcessorLoad son las filas de nucleos (18 en
+    # un CHR con 18 nucleos) y hrStorage es la tabla de discos; nada
+    # comparable a la ifTable (~2.200 filas), o sea el costo marginal de la
+    # corrida del cron es despreciable.
+    "hw": {
+        "enabled": False,
+        "cpu_oid": "1.3.6.1.2.1.25.3.3.1.2",        # hrProcessorLoad (%)
+        "storage_descr_oid": "1.3.6.1.2.1.25.2.3.1.3",  # hrStorageDescr
+        "storage_size_oid": "1.3.6.1.2.1.25.2.3.1.5",   # hrStorageSize
+        "storage_used_oid": "1.3.6.1.2.1.25.2.3.1.6",   # hrStorageUsed
+        "ram_descr": "Memory",      # fila de RAM por su descr
+        "disk_index": 131072,       # fila del disco (como vfs.fs.pused[hrStorageSize.131072])
     },
     "vlan": {
         # El mapper NO lleva listas de VLANs: la autoridad de que se monitorea
@@ -419,8 +439,99 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
     return vlans, len(rows), ppp, None
 
 
+def collect_hw(host_config, config, hw_walker=run_snmpwalk):
+    """Walks de CPU y storage (tablas chicas) -> tres escalares.
+
+    Devuelve un dict con las metricas que se pudieron calcular:
+      cpu_avg    = media de hrProcessorLoad (%)
+      disk_pused = hrStorageUsed/hrStorageSize*100 de la fila del disco
+      ram_util   = idem de la fila "Memory"
+
+    Mismo guard que el PPP: cada walk fallido (excepcion o 0 filas) deja
+    fuera SU metrica, sin pisa el resto ni el lado VLAN/PPP.
+    """
+    hw_cfg = config.get("hw", {})
+    snmp = config.get("snmp", {})
+    community = host_config.get("community") or snmp.get("community", "public")
+    name = host_config.get("zabbix_host")
+
+    def walk(oid):
+        return hw_walker(
+            host_config["ip"], community, oid,
+            version=snmp.get("version", 2),
+            timeout=snmp.get("timeout", 15),
+            retries=snmp.get("retries", 1),
+            binary=snmp.get("binary", "snmpwalk"),
+        )
+
+    hw = {}
+
+    # CPU: media de los nucleos.
+    try:
+        cpu_oid = hw_cfg.get("cpu_oid", "1.3.6.1.2.1.25.3.3.1.2")
+        loads = []
+        for _index, value in parse_walk_output(walk(cpu_oid), cpu_oid):
+            try:
+                loads.append(int(value))
+            except (TypeError, ValueError):
+                continue
+        if loads:
+            hw["cpu_avg"] = round(sum(loads) / len(loads), 1)
+        else:
+            print("[hw] %s: el walk de CPU devolvio 0 filas -> no se publica" % name)
+    except Exception as exc:
+        print("[hw] %s: fallo el walk de CPU: %s" % (name, exc))
+
+    # Storage: RAM y disco sobre las 3 columnas de hrStorage.
+    try:
+        descr = dict(parse_walk_output(walk(hw_cfg.get("storage_descr_oid",
+                                                        "1.3.6.1.2.1.25.2.3.1.3")),
+                                       hw_cfg["storage_descr_oid"]))
+        size = {}
+        for index, value in parse_walk_output(walk(hw_cfg["storage_size_oid"]),
+                                              hw_cfg["storage_size_oid"]):
+            try:
+                size[index] = float(value)
+            except (TypeError, ValueError):
+                continue
+        used = {}
+        for index, value in parse_walk_output(walk(hw_cfg["storage_used_oid"]),
+                                              hw_cfg["storage_used_oid"]):
+            try:
+                used[index] = float(value)
+            except (TypeError, ValueError):
+                continue
+
+        def pused(index):
+            if index in size and index in used and size[index] > 0:
+                return round(used[index] / size[index] * 100, 1)
+            return None
+
+        for index, row_name in descr.items():
+            if row_name == hw_cfg.get("ram_descr", "Memory"):
+                value = pused(index)
+                if value is not None:
+                    hw["ram_util"] = value
+                else:
+                    print("[hw] %s: la fila de RAM no tiene size/used -> no se publica" % name)
+        disk_index = int(hw_cfg.get("disk_index", 131072))
+        if disk_index in descr:
+            value = pused(disk_index)
+            if value is not None:
+                hw["disk_pused"] = value
+            else:
+                print("[hw] %s: la fila del disco no tiene size/used -> no se publica" % name)
+        else:
+            print("[hw] %s: la fila del disco (%s) no esta en el walk -> no se publica"
+                  % (name, disk_index))
+    except Exception as exc:
+        print("[hw] %s: fallo el walk de storage: %s" % (name, exc))
+
+    return hw
+
+
 def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_snmpwalk,
-        verbose=False, whitelist=None):
+        hw_walker=run_snmpwalk, verbose=False, whitelist=None):
     """Procesa todos los hosts. Devuelve el codigo de salida (0 = todo bien)."""
     failures = 0
     zabbix_config = config.get("zabbix", {})
@@ -478,6 +589,29 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
                 failures += 1
             else:
                 print("[%s] %s: mapa de dedicados publicado (%s)" % (stamp, name, output))
+
+        # 4) CPU / disco / RAM por trapper (solo hosts con "hw": true)
+        hw_enabled = host.get("hw")
+        if hw_enabled is None:
+            hw_enabled = bool(config.get("hw", {}).get("enabled", False))
+        if hw_enabled:
+            try:
+                hw = collect_hw(host, config, hw_walker=hw_walker)
+            except Exception as exc:  # el lado hw no debe tumbar VLAN/PPP
+                print("[hw] %s: fallo colectando hw: %s" % (name, exc))
+                hw = {}
+            for purpose, value_key in (("hw_cpu", "cpu_avg"),
+                                       ("hw_disk", "disk_pused"),
+                                       ("hw_ram", "ram_util")):
+                if value_key not in hw:
+                    continue
+                ok, output = publish(zabbix_config, name, key_for(zabbix_config, purpose),
+                                     str(hw[value_key]))
+                if not ok:
+                    print("[%s] %s: ERROR publicando %s -> %s" % (stamp, name, value_key, output))
+                    failures += 1
+                else:
+                    print("[%s] %s: %s publicado (%s)" % (stamp, name, value_key, output))
     return 1 if failures else 0
 
 
