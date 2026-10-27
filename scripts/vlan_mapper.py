@@ -118,6 +118,10 @@ DEFAULT_CONFIG = {
         "storage_used_oid": "1.3.6.1.2.1.25.2.3.1.6",   # hrStorageUsed
         "ram_index": 65536,         # fila de RAM (main memory, convencion Mikrotik)
         "disk_index": 131072,       # fila del disco (system disk)
+        # Las tablas de hw son chicas (18 filas + decenas): walk con timeout
+        # corto para que un CHR caido no frene la corrida (el default del SNMP
+        # general es 60 s, pensado para la ifTable pesada).
+        "timeout": 10,
     },
     "vlan": {
         # El mapper NO lleva listas de VLANs: la autoridad de que se monitorea
@@ -459,7 +463,8 @@ def collect_hw(host_config, config, hw_walker=run_snmpwalk):
         return hw_walker(
             host_config["ip"], community, oid,
             version=snmp.get("version", 2),
-            timeout=snmp.get("timeout", 15),
+            # timeout corto: tablas chicas, un CHR caido no debe frenar
+            timeout=hw_cfg.get("timeout", 10),
             retries=snmp.get("retries", 1),
             binary=snmp.get("binary", "snmpwalk"),
         )
@@ -526,8 +531,12 @@ def collect_hw(host_config, config, hw_walker=run_snmpwalk):
 
 
 def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_snmpwalk,
-        hw_walker=run_snmpwalk, verbose=False, whitelist=None):
-    """Procesa todos los hosts. Devuelve el codigo de salida (0 = todo bien)."""
+        hw_walker=run_snmpwalk, verbose=False, whitelist=None, hw_only=False):
+    """Procesa todos los hosts. Devuelve el codigo de salida (0 = todo bien).
+
+    hw_only: corrida SOLO de CPU/disco/RAM (tablas chicas, pensada para el
+    cron de 1 min). No toca los walks pesados de ifTable ni la tabla PPP.
+    """
     failures = 0
     zabbix_config = config.get("zabbix", {})
     for host in config.get("hosts", []):
@@ -539,34 +548,41 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
             print("[%s] %s: sin IP configurada -> se saltea (completar la config)" % (stamp, name))
             failures += 1
             continue
-        vlans, rows, ppp, error = collect_host(host, config, walker=walker, ppp_walker=ppp_walker)
+
+        # en modo hw_only se saltea todo el lado VLAN/PPP
+        vlans, rows, ppp, error = (0, 0, None, None) if hw_only else collect_host(
+            host, config, walker=walker, ppp_walker=ppp_walker)
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         if error:
             print("[%s] %s (%s): ERROR %s" % (stamp, name, host["ip"], error))
             failures += 1
             continue
-        published = ", ".join(vlan["ifdescr"] for vlan in vlans) or "(ninguna)"
-        print("[%s] %s (%s): %d filas de ifTable, %d VLANs publicadas: %s" % (
-            stamp, name, host["ip"], rows, len(vlans), published))
-        if verbose:
-            print("[%s] %s: %s" % (stamp, name, build_payload(vlans)))
+        if hw_only:
+            pass  # sin resumen de ifTable: esta corrida solo publica hw
+        else:
+            published = ", ".join(vlan["ifdescr"] for vlan in vlans) or "(ninguna)"
+            print("[%s] %s (%s): %d filas de ifTable, %d VLANs publicadas: %s" % (
+                stamp, name, host["ip"], rows, len(vlans), published))
+            if verbose:
+                print("[%s] %s: %s" % (stamp, name, build_payload(vlans)))
         if dry_run:
             continue
 
         # 1) mapa de VLANs (master de la LLD de VLANs)
-        if vlans:
-            ok, output = publish(zabbix_config, name, key_for(zabbix_config, "vlan_map"),
-                                  build_payload(vlans))
-            if not ok:
-                print("[%s] %s: ERROR publicando el mapa de VLANs -> %s" % (stamp, name, output))
-                failures += 1
+        if not hw_only:
+            if vlans:
+                ok, output = publish(zabbix_config, name, key_for(zabbix_config, "vlan_map"),
+                                     build_payload(vlans))
+                if not ok:
+                    print("[%s] %s: ERROR publicando el mapa de VLANs -> %s" % (stamp, name, output))
+                    failures += 1
+                else:
+                    print("[%s] %s: mapa de VLANs publicado (%s)" % (stamp, name, output))
             else:
-                print("[%s] %s: mapa de VLANs publicado (%s)" % (stamp, name, output))
-        else:
-            print("[%s] %s: 0 VLANs -> no se publica (para no vaciar el LLD)" % (stamp, name))
+                print("[%s] %s: 0 VLANs -> no se publica (para no vaciar el LLD)" % (stamp, name))
 
         # 2) conteo de sesiones PPP + 3) mapa de dedicados
-        if ppp:
+        if not hw_only and ppp:
             count_payload = str(ppp["sessions"])
             dedicated_payload = build_payload(ppp["dedicated"])
             print("[%s] %s: %d sesiones PPP, %d dedicadas (%s)" % (
@@ -637,6 +653,8 @@ def main(argv=None):
     parser.add_argument("--host", help="procesa solo ese host (nombre Zabbix)")
     parser.add_argument("--verbose", action="store_true", help="detalle por host")
     parser.add_argument("--whitelist", help="regex de dedicados (override; por defecto se lee del template)")
+    parser.add_argument("--hw-only", action="store_true",
+                        help="solo CPU/disco/RAM (tablas chicas; para el cron de 1 min)")
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
@@ -646,7 +664,8 @@ def main(argv=None):
     else:
         print("[ppp] sin whitelist de dedicados: se publica el conteo pero no el mapa")
     config.setdefault("ppp", {})["whitelist"] = whitelist
-    return run(config, dry_run=args.dry_run, only=args.host, verbose=args.verbose)
+    return run(config, dry_run=args.dry_run, only=args.host, verbose=args.verbose,
+               hw_only=args.hw_only)
 
 
 if __name__ == "__main__":

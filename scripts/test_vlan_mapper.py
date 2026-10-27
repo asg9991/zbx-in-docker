@@ -649,6 +649,76 @@ class HwTrapperTest(unittest.TestCase):
         self.assertEqual(vlan_mapper.key_for(zabbix, "hw_disk"), "system.hw.disk.pused")
         self.assertEqual(vlan_mapper.key_for(zabbix, "hw_ram"), "system.hw.ram.util")
 
+    def test_hw_only_run_skips_vlan_and_ppp_walks(self):
+        """--hw-only: no camina ifTable ni la tabla PPP, solo publica hw."""
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        config["hosts"] = [{"zabbix_host": "SW-EDGE-704", "ip": "192.0.2.66", "hw": True}]
+        walked = []
+
+        def spy_walker(ip, community, oid, **kwargs):
+            walked.append(oid)
+            return fake_hw_walker()(ip, community, oid, **kwargs)
+
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append(key)
+            return True, "sent: 1"
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(config, walker=spy_walker, ppp_walker=spy_walker,
+                                   hw_walker=spy_walker, hw_only=True)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertNotIn("1.3.6.1.2.1.2.2.1.2", walked, "hw-only no debe caminar ifDescr")
+        self.assertNotIn("1.3.6.1.4.1.14988.1.1.2.1.1.2", walked, "hw-only no debe caminar PPP")
+        self.assertEqual(sorted(published), sorted(HW_KEYS))
+
+    def test_hw_only_run_needs_hw_enabled(self):
+        """Sin el flag de host, la corrida hw-only no publica ni camina nada."""
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        walked = []
+
+        def spy_walker(ip, community, oid, **kwargs):
+            walked.append(oid)
+            return ""
+
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append(key)
+            return True, "sent: 1"
+
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(config, walker=spy_walker, ppp_walker=spy_walker,
+                                   hw_walker=spy_walker, hw_only=True)
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertEqual(walked, [], "sin hw habilitado no debe haber walks")
+        self.assertEqual(published, [])
+
+    def test_hw_walk_uses_short_timeout(self):
+        """El walk de hw usa su timeout corto, no el del SNMP general (60 s)."""
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        config["snmp"]["timeout"] = 60
+        config["hosts"] = [{"zabbix_host": "SW-EDGE-704", "ip": "192.0.2.66", "hw": True}]
+        timeouts = []
+
+        def spy_walker(ip, community, oid, timeout=15, **kwargs):
+            timeouts.append(timeout)
+            return fake_hw_walker()(ip, community, oid, timeout=timeout, **kwargs)
+
+        vlan_mapper.collect_hw(config["hosts"][0], config, hw_walker=spy_walker)
+        self.assertTrue(timeouts, "debe haber walks de hw")
+        self.assertTrue(all(t <= 10 for t in timeouts),
+                        "timeout de hw debe ser <= 10 s, no %s" % timeouts)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -42,3 +42,5 @@ como fase siguiente. Branch: `site-a-hw-mapper`. Test runner: `python3 -m pytest
 - Espejo Engram pendiente si mem_save sigue fallando por sesiones múltiples.
 
 - L2 (2026-10-27): usuario confirmó no tocar el walk pesado de interfaces; aplicado a los 8 CHR. Rollback en site-a: /opt/monitoring/hw-rollback-20261027.json.
+
+- L3 (2026-10-27): lectura de hw a 1 min: flag --hw-only + cron dedicado (tablas chicas, timeout 10 s). La lectura (GETs 1m) y el descubrimiento (walk 5m) quedaron claramente separados.
