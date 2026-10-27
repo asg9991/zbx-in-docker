@@ -25,10 +25,10 @@ como fase siguiente. Branch: `site-a-hw-mapper`. Test runner: `python3 -m pytest
 
 ## Tasks
 
-- T1 (S2-S4): mapper: colección hw + publish + config + tests (RED->GREEN, inline)
-- T2 (S5): Zabbix 704: items trapper, deshabilitar walks/calc/dependientes, re-apuntar widgets (inline, remoto)
-- T3 (S1): deploy a site-a (backup de config y mapper), corrida piloto 704, verificación de datos y dashboard (inline, remoto)
-- T4: docs + checklist de extrapolación al resto de los CHR (inline)
+- T1 (S2-S4): mapper: colección hw + publish + config + tests (RED->GREEN, inline) — ✅ 37/37, commits 02e7151 + 6ebe869
+- T2 (S5): Zabbix 704: items trapper 134725/26/27, deshabilitados walks (134592/134603) + calcs (134715/134712/134606) + 25 dependientes; widgets re-apuntados (8668->134725, 68115->134726, 68116->134727) — ✅
+- T3 (S1): deploy a site-a (backups .bak.20261027 de config y mapper), piloto corriendo: cpu 42.9 / disco 52.1 / ram 12.5; validado: corrida del cron de las 11:34 publicó las 3 métricas — ✅
+- T4: docs + checklist de extrapolación al resto de los CHR (inline) — ✅ docs/vlan-lld-site-a.md
 
 ## Log
 
