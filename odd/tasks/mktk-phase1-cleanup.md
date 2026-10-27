@@ -41,3 +41,19 @@ sin perder monitoreo ni dashboard, como paso previo a la plantilla unificada
   Los triggers templados y graphs templados no se pueden borrar por host (API
   los rechaza): template 40441 y graph 7000 se borraron en el template.
   graph_discovery con parent_graphid colgado bloqueaba 4 graphs huerfanos.
+
+- L4 (2026-10-27, reporte del usuario con capturas): quedaba sucio y se corrigio:
+  1) Triggers "sin trafico recibido 30m" y VLAN "No traffic sent" usaban
+  min(rate,N)=0 (falso positivo con UN solo minuto/5m sin trafico): corregidos
+  min->max en 62 funciones (16 PPP + 46 VLAN), prototipos incluidos, via SQL
+  directo sobre functions (la expresion {functionid}=0 no cambia). Verificado:
+  0 problemas activos en dedicados tras reload.
+  2) Graphs duplicados: los "Usuario <name>: Trafico" eran manuales (flags=0)
+  que duplicaban a los "PPP <name>: Traffic" descubiertos por LLD (flags=4).
+  Borrados los 6 manuales (8437/8440/8441/8442/8445/8180).
+  3) Widgets 67621-67626 NO tenian campo graphid.0 (roto, "not fully
+  configured"): insertado con graphs PPP (8436 nuevo para Enlace-patrullarural
+  en 602, clon de 8643). Los 8 widgets de USUARIOS DEDICADOS quedan sobre
+  graphs LLD.
+  Leccion: los graphs "Usuario" de q_wid eran filas de widget_field ya huerfanas
+  del dashboard viejo; verificar SIEMPRE con widget_field+widget+dashboard_page.
