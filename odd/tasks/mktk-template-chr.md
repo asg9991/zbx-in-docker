@@ -45,3 +45,22 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
 - L2 (2026-10-28): migracion aplicada x8 con herencia; itemids preservados; filtro unificado en template; incidente de discovery sin filtro resuelto con lifetime=0 temporal.
 
 - L3 (2026-10-28): Fase 2b completa. Las 3 templates viejas retiradas; 10885 es la unica template del monitoreo EDGE.
+
+- L4 (2026-10-28, SIN CERRAR - rotura del LLD de interfaces): al borrar las 3
+  templates viejas, el cascade dejo atados a los prototipos viejos a los items
+  descubiertos y quedaron deshabilitados en varias olas (audit: 11:18, 11:22,
+  12:04, 12:13). Estado actual: VLANs/PPP/hw funcionando (mapper, intactos);
+  **interfaces (uplinks) SIN monitoreo**: items descubiertos borrados/zombis,
+  el net.if.walk colecciona (verificado con history temporal: 1.341 filas,
+  0,5 s) pero el LLD no redescubre. Corregido en el camino: filtro de la regla
+  a 6 condiciones (IFALIAS/IFDESCR/IFNAME), macros {$NET.IF.IFALIAS.*} agregadas
+  a la template (faltaban = filas rechazadas), walk reducido a 1 columna
+  (ifDescr) + preprocessing acorde, timeout 60s. Todavia no redescubre.
+  Items uplink re-habilitados varias veces; las LLD viejas los volvian a
+  deshabilitar. Los graphs de uplink (7042/7080/8198/8645) existen pero sus
+  items fueron borrados -> habra que re-apuntar tras redescubrir.
+  HIPOTESIS PENDIENTE: el valor del walk[4 columnas] y el formato que espera el
+  preprocessing walk-to-JSON de la regla pueden no calzar; probar con el valor
+  real del walk (activar history y ver) contra el formato esperado, o migrar
+  la discovery de interfaces al mapper (patron VLANs) y liquidar el walk.
+  REGLA: no seguir toqueteando items a mano; diagnosticar el formato primero.
