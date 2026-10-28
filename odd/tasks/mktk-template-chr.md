@@ -98,3 +98,12 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   "(trapper, mapper)" en template 10885. Uplinks con linea verde en gradiente
   (drawtype 5 en prototipo 13042 + propagado). Widget 704 VLANs apuntado al graph
   nuevo 13078 (el 8646 original habia sido borrado en la limpieza).
+
+- L9 (2026-10-28): dedicados PPP corregidos. Causa raiz: el mapper leia la
+  whitelist {$PPP.DEDICATED.MATCHES} del template 10870 (BORRADO en la fase 2b)
+  -> leia nada -> 0 dedicadas -> LLD vacio -> items/graphs borrados. Fix:
+  template_hostid 10870 -> 10885 en vlan_mapper_config.json (y default del py).
+  Ademas: normalizacion de nombre "Enlace-patrullarural" -> "<pppoe-patrullarural>"
+  en el mapper (mismo estilo que el resto). Graphs "Usuario <pppoe-X>" recreados
+  (13089-13096) y 8 widgets re-apuntados (67621-67628), incl. widget de
+  patrullarural renombrado. Verificado: items_ok=2 en los 8, datos llegando.
