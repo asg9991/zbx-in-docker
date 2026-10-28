@@ -68,3 +68,20 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
 
 - L5 (2026-10-28): T6 COMPLETADO — discovery de interfaces por mapper+trapper,
   walk pesado eliminado, uplinks re-apuntados y verificados x6.
+
+- L6 (2026-10-28, PENDIENTE - metricas mal): los prototipos net.if.in/out nuevos
+  NO tienen el "change per second" (delta): grafican el CONTADOR crudo x8
+  (Tbps absurdos). En 7.4 delta NO es preprocessing type 2 (verificado: type 2
+  rechazado en prototype.update con "params/1 cannot be empty" y items
+  descubiertos tienen preprocessing readonly; la tabla items no tiene columna
+  delta). Los items discovereds heredan preprocessing del prototipo (readonly),
+  o sea que el fix es SOLO en el prototipo 158091/158100 con el type correcto
+  de delta en 7.4 (mirar el numero de tipo en la UI de un item viejo o docs
+  7.4). Falta ademas:
+  a) borrar la historia corrupta ya hecho (DELETE history_uint > 13:00),
+  b) re-apuntar uplinks 702/703 (widgets 67525/67517 sin campo graphid;
+     graphs nuevos "Interface PUBLICA(): Network traffic" por host ya existen),
+  c) reconstruir los graphs combinados de VLANs de 601/701/702/703 (sus items
+     viejos fueron borrados; los nuevos por LLD ya existen; rehacer gitems
+     sent-colors/received-grays),
+  d) insertar campos graphid.0 (type=6) para los widgets de VLANs 601/701/702/703.
