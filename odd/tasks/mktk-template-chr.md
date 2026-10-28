@@ -107,3 +107,13 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   en el mapper (mismo estilo que el resto). Graphs "Usuario <pppoe-X>" recreados
   (13089-13096) y 8 widgets re-apuntados (67621-67628), incl. widget de
   patrullarural renombrado. Verificado: items_ok=2 en los 8, datos llegando.
+
+- L10 (2026-10-28): documentacion del metodo de graficos. Nuevo
+  docs/graficos-site-a.md (modelo item->graphs_items->graphs->widget_field->
+  widget, codigos verificados 7.4, 4 patrones golden, receta de 6 pasos,
+  13 minas, query de salud, inventario de IDs). dashboard-update.md y
+  zbx-index apuntan ahi; vlan-lld-site-a.md cierra Fase 2d y limpia el bullet
+  obsoleto del 10870. Mina nueva detectada y corregida: los INSERT directos
+  habian dejado ids.nextid por detras de max -> proxima creacion por API
+  colisionaba (widget_field 298442 < max 298463). Estado verificado del
+  dashboard 1: 0 widgets graph rotos de 81.

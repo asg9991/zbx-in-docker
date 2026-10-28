@@ -2,6 +2,12 @@
 
 Scope: Zabbix API `dashboard.update` on the Global view dashboard. Documentation only; no Zabbix changes are made by this file.
 
+> Antes de tocar widgets: leer `docs/graficos-site-a.md`. Explica el modelo
+> `item → graphs_items → graphs → widget_field → widget`, el patrón de cada
+> gráfico, la receta completa y las minas (cascadas, `type=6`, tabla `ids`).
+> Si el objetivo es reparar un gráfico que "dejó de graficar", casi siempre es
+> `widget_field.graphid.0` y NO hace falta `dashboard.update`.
+
 ## 1. Core rule: update replaces, it does not merge
 
 `dashboard.update` is dashboard-scoped, not page-scoped. The `pages` array in the request **replaces** the whole dashboard definition:
@@ -95,6 +101,33 @@ Consequences:
 
 - A page whose widgets lost their backing objects (for example LLD-discovered graphs deleted after a discovery change) will show widgets with only `reference` fields. Do not PUT blindly in that state: either re-point them to valid objects first or abort the update.
 - Always compare per-page counts before and after; a count drop of exactly the reference-only widgets is the signature of this trap.
+
+### 4.1 Why widgets end up reference-only
+
+Three cascades, all verified in this project (`docs/graficos-site-a.md`, sección 5):
+
+| Causa | Efecto |
+|---|---|
+| Se borra el `graph` | la FK `c_widget_field_5` borra el `widget_field` |
+| Se borra el `item` | se borra el `graphs_items`; el gráfico queda vacío |
+| Se borra un `template` | cascade sobre ítems/gráficos descubiertos de los hosts |
+
+Reparación quirúrgica (sin `dashboard.update`): reinsertar `graphid.0` con
+`type=6` y `value_graphid` válido, y **actualizar la tabla `ids`**.
+
+### 4.2 Nunca insertar en `widget`/`widget_field`/`graphs` por SQL sin arreglar `ids`
+
+Zabbix reserva IDs en la tabla `ids`. Un INSERT directo no la actualiza y el próximo
+objeto creado por API colisiona. Después de cualquier INSERT directo:
+
+```sql
+UPDATE ids SET nextid = (SELECT max(widget_fieldid)+1 FROM widget_field) WHERE table_name='widget_field';
+UPDATE ids SET nextid = (SELECT max(graphid)+1 FROM graphs)               WHERE table_name='graphs';
+UPDATE ids SET nextid = (SELECT max(gitemid)+1 FROM graphs_items)         WHERE table_name='graphs_items';
+UPDATE ids SET nextid = (SELECT max(widgetid)+1 FROM widget)              WHERE table_name='widget';
+```
+
+Verificar que cada `nextid` sea max+1 antes de seguir.
 
 ## 5. Lesson reference: the 12 deleted pages
 

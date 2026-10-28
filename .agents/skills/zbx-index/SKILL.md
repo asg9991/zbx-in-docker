@@ -23,7 +23,9 @@ Abrir este skill primero para no explorar el árbol completo. Si la tarea no apa
 
 | Tarea | Doc / archivo |
 |---|---|
+| **Armar/arreglar un gráfico o widget** | **`docs/graficos-site-a.md`** (modelo DB, patrones, receta, minas) |
 | Modificar dashboards | `docs/dashboard-update.md` |
+| Recolección EDGE (mapper, LLD, macros) | `docs/vlan-lld-site-a.md` |
 | Diagnóstico de servicio (pre/post) | `docs/checklist-servicio.md` |
 | Diagnóstico de incidente real | `docs/diagnostico-site-a-20250915.md` |
 | Recuperación / rollback | `docs/recupero.md` |
@@ -82,6 +84,12 @@ curl -s http://127.0.0.1/api_jsonrpc.php -H 'Content-Type: application/json-rpc'
 4. Backup antes de cualquier cambio gordo.
 5. `psql -c` no interpola variables → stdin + dollar-quoting.
 6. No inventar configuración ni credenciales.
+7. INSERT directo en `widget*`/`graphs*` → **actualizar la tabla `ids`**
+   (`nextid = max+1`) o la próxima creación por API colisiona.
+8. "Widget is not fully configured" = `widget_field.graphid.0` roto, no el
+   widget: reparar el binding antes de tocar el dashboard.
+9. Antes de dar un gráfico por hecho, correr la query de salud de
+   `docs/graficos-site-a.md` (paso 6): resultado esperado 0 filas.
 
 ## Si la tarea no está en este índice
 
