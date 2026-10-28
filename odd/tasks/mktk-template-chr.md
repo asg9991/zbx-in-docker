@@ -32,6 +32,7 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
 - T3: extrapolar a los otros 7 + verificacion (inline)
 - T4: limpieza post + docs + reporte (inline) — ✅ (ver docs; incidente del filtro resuelto)
 - T5 (Fase 2b, S6): 10885 standalone (herencia removida), 3 templates viejas borradas con backup — ✅ verificado x8
+- T6 (L4): interfaces al mapper: mapper publica net.if.map (JSON [{index, ifdescr}] filtrado por la macro del host leida por psql); LLD trapper en 10885 con lld_macro_paths + prototipos; baja del walk+LLD viejo; re-apuntar uplinks (inline)
 
 ## Log
 
@@ -64,3 +65,6 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   real del walk (activar history y ver) contra el formato esperado, o migrar
   la discovery de interfaces al mapper (patron VLANs) y liquidar el walk.
   REGLA: no seguir toqueteando items a mano; diagnosticar el formato primero.
+
+- L5 (2026-10-28): T6 COMPLETADO — discovery de interfaces por mapper+trapper,
+  walk pesado eliminado, uplinks re-apuntados y verificados x6.

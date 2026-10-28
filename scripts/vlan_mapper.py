@@ -75,6 +75,7 @@ DEFAULT_CONFIG = {
             "hw_cpu": "system.hw.cpu.avg",
             "hw_disk": "system.hw.disk.pused",
             "hw_ram": "system.hw.ram.util",
+            "if_map": "net.if.map",
         },
         "docker_binary": "docker",
         "use_docker": True,
@@ -110,6 +111,14 @@ DEFAULT_CONFIG = {
     # un CHR con 18 nucleos) y hrStorage es la tabla de discos; nada
     # comparable a la ifTable (~2.200 filas), o sea el costo marginal de la
     # corrida del cron es despreciable.
+    "if_map": {
+        "enabled": False,
+        "macro": "{$NET.IF.IFDESCR.MATCHES}",
+        "source": {
+            "docker_binary": "docker",
+            "container": "zabbix-postgres",
+        },
+    },
     "hw": {
         "enabled": False,
         "cpu_oid": "1.3.6.1.2.1.25.3.3.1.2",        # hrProcessorLoad (%)
@@ -274,6 +283,22 @@ def filter_vlans(rows, pattern=None, exclude_pattern=None):
     return vlans
 
 
+def filter_if_map(rows, regex):
+    """Mapa de interfaces -> JSON [{index, ifdescr}] filtrado por la macro del host.
+
+    El mapper NO decide que se monitorea: publica las filas que matchean la
+    regex {$NET.IF.IFDESCR.MATCHES} leida por psql. Sin regex o regex invalida
+    -> no publica (mismo guard que el resto).
+    """
+    if not regex:
+        return []
+    try:
+        rx = re.compile(regex)
+    except re.error:
+        return []
+    return [{"index": int(idx), "ifdescr": name} for idx, name in rows if rx.match(name)]
+
+
 def build_payload(vlans):
     """JSON del master (contrato verificado en T1): array de objetos."""
     return json.dumps(vlans, separators=(",", ":"))
@@ -378,10 +403,43 @@ def read_whitelist_from_db(source):
     return value or None
 
 
+def read_host_macro(dbcfg, zabbix_host, macro):
+    """Lee la macro de un HOST; si no tiene, cae a la macro del TEMPLATE.
+
+    Orden: macro de host (override por nodo) -> macro de template (default
+    unificado). Devuelve el valor o None.
+    """
+    if not dbcfg:
+        return None
+    sql = ("select hm.value from hostmacro hm join hosts h on h.hostid = hm.hostid "
+           "where h.host = '%s' and hm.macro = '%s';" % (zabbix_host, macro))
+    value = _psql_scalar(dbcfg, sql)
+    if value is None and dbcfg.get("template_hostid"):
+        value = _psql_scalar(dbcfg, "select value from hostmacro where hostid = %s and macro = '%s';"
+                             % (int(dbcfg["template_hostid"]), macro))
+        if value:
+            print("[if_map] %s: sin macro propia, uso la del template" % zabbix_host)
+    return value
+
+
+def _psql_scalar(dbcfg, sql):
+    """Corre un psql read-only de un solo valor. Devuelve str o None."""
+    command = [dbcfg.get("docker_binary", "docker"), "exec", "-i", dbcfg.get("container", "zabbix-postgres"),
+               "psql", "-U", "zabbix", "-d", "zabbix", "-At", "-c", sql]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    except Exception as exc:
+        print("[if_map] no pude leer por psql: %s" % exc)
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
 def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwalk):
     """Walk + filtro de un CHR.
 
-    Devuelve (vlan_publicadas, filas_ifdescr, ppp, error) con
+    Devuelve (vlan_publicadas, filas, ppp, error) con filas = lista completa
       ppp = {"sessions": N, "dedicated": [{ppp_name, index}, ...]} o None si
             el walk de sesiones PPP fallo (o no hay whitelist).
     """
@@ -404,7 +462,7 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
     try:
         raw = walk(snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
     except Exception as exc:  # un CHR caido no debe tumbar al resto
-        return [], 0, None, str(exc)
+        return [], [], None, str(exc)
     rows = parse_walk_output(raw, snmp.get("oid", "1.3.6.1.2.1.2.2.1.2"))
     vlans = filter_vlans(
         rows,
@@ -440,7 +498,7 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
             # el lado PPP no debe tumbar al lado VLAN
             print("[ppp] %s: fallo el walk de sesiones PPP: %s" % (host_config.get("zabbix_host"), exc))
             ppp = None
-    return vlans, len(rows), ppp, None
+    return vlans, rows, ppp, None
 
 
 def collect_hw(host_config, config, hw_walker=run_snmpwalk):
@@ -562,7 +620,7 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
         else:
             published = ", ".join(vlan["ifdescr"] for vlan in vlans) or "(ninguna)"
             print("[%s] %s (%s): %d filas de ifTable, %d VLANs publicadas: %s" % (
-                stamp, name, host["ip"], rows, len(vlans), published))
+                stamp, name, host["ip"], len(rows), len(vlans), published))
             if verbose:
                 print("[%s] %s: %s" % (stamp, name, build_payload(vlans)))
         if dry_run:
@@ -600,6 +658,23 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
                 failures += 1
             else:
                 print("[%s] %s: mapa de dedicados publicado (%s)" % (stamp, name, output))
+
+        # 3b) mapa de interfaces (para la LLD trapper de interfaces)
+        if_map_cfg = config.get("if_map", {})
+        if if_map_cfg.get("enabled"):
+            regex = read_host_macro(if_map_cfg.get("source"), name,
+                                    if_map_cfg.get("macro", "{$NET.IF.IFDESCR.MATCHES}"))
+            if_map = filter_if_map(rows, regex)
+            if if_map:
+                ok, output = publish(zabbix_config, name, key_for(zabbix_config, "if_map"),
+                                     build_payload(if_map))
+                if not ok:
+                    print("[%s] %s: ERROR publicando el mapa de interfaces -> %s" % (stamp, name, output))
+                    failures += 1
+                else:
+                    print("[%s] %s: mapa de interfaces publicado (%d interfaces)" % (stamp, name, len(if_map)))
+            else:
+                print("[%s] %s: mapa de interfaces vacio -> no se publica" % (stamp, name))
 
         # 4) CPU / disco / RAM por trapper (solo hosts con "hw": true)
         hw_enabled = host.get("hw")

@@ -720,5 +720,53 @@ class HwTrapperTest(unittest.TestCase):
                         "timeout de hw debe ser <= 10 s, no %s" % timeouts)
 
 
+class IfMapTest(unittest.TestCase):
+    """T6: mapa de interfaces por trapper (JSON [{index, ifdescr}])."""
+
+    def test_filter_if_map_by_host_macro(self):
+        rows = [(22, "PUBLICA"), (23, "USUARIOS"), (62, "lo"), (89, "vlan499"),
+                (100, "<pppoe-alguien>"), (120, "NAS")]
+        out = vlan_mapper.filter_if_map(rows, r"^(PUBLICA|USUARIOS|NAS)$")
+        self.assertEqual(out, [{"index": 22, "ifdescr": "PUBLICA"},
+                               {"index": 23, "ifdescr": "USUARIOS"},
+                               {"index": 120, "ifdescr": "NAS"}])
+
+    def test_filter_if_map_regex_invalido_publica_nada(self):
+        self.assertEqual(vlan_mapper.filter_if_map([(22, "PUBLICA")], "("), [])
+
+    def test_filter_if_map_sin_regex_publica_nada(self):
+        self.assertEqual(vlan_mapper.filter_if_map([(22, "PUBLICA")], None), [])
+
+    def test_read_host_macro_falls_back_to_template(self):
+        class FakeResult:
+            returncode = 0
+            stdout = "^(PUBLICA|USUARIOS|NAS)$\n"
+            stderr = ""
+
+        queries = []
+
+        def fake_run(command, **kwargs):
+            queries.append(command[-1])
+            class FakeResult:
+                returncode = 0
+                stdout = "" if len(queries) == 1 else "^(PUBLICA|USUARIOS|NAS)$\n"
+                stderr = ""
+            return FakeResult()
+
+        original = vlan_mapper.subprocess.run
+        vlan_mapper.subprocess.run = fake_run
+        try:
+            value = vlan_mapper.read_host_macro(
+                {"container": "zabbix-postgres", "template_hostid": 10885},
+                "SW-EDGE-601", "{$NET.IF.IFDESCR.MATCHES}")
+        finally:
+            vlan_mapper.subprocess.run = original
+        self.assertEqual(value, "^(PUBLICA|USUARIOS|NAS)$")
+        self.assertEqual(len(queries), 2, "host primero, template como fallback")
+
+    def test_key_for_if_map(self):
+        self.assertEqual(vlan_mapper.key_for({"keys": {"if_map": "net.if.map"}}, "if_map"), "net.if.map")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
