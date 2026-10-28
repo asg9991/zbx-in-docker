@@ -30,8 +30,8 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
 - T1: extraer definiciones fuente (10841/10869/10870 + hw de 704) y crear la template "Mikrotik CHR" con todo el contenido (inline)
 - T2: piloto de migracion en SW-EDGE-704 + verificacion completa (inline)
 - T3: extrapolar a los otros 7 + verificacion (inline)
-- T4: limpieza post + docs + reporte (inline) — ✅ (ver docs; incidente del
-  filtro resuelto; pendiente Fase 2b: consolidar 10885 y retirar las 3 viejas)
+- T4: limpieza post + docs + reporte (inline) — ✅ (ver docs; incidente del filtro resuelto)
+- T5 (Fase 2b, S6): 10885 standalone (herencia removida), 3 templates viejas borradas con backup — ✅ verificado x8
 
 ## Log
 
@@ -43,3 +43,5 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   por key.
 
 - L2 (2026-10-28): migracion aplicada x8 con herencia; itemids preservados; filtro unificado en template; incidente de discovery sin filtro resuelto con lifetime=0 temporal.
+
+- L3 (2026-10-28): Fase 2b completa. Las 3 templates viejas retiradas; 10885 es la unica template del monitoreo EDGE.
