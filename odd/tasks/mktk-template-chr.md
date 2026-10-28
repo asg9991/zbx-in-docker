@@ -85,3 +85,10 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
      viejos fueron borrados; los nuevos por LLD ya existen; rehacer gitems
      sent-colors/received-grays),
   d) insertar campos graphid.0 (type=6) para los widgets de VLANs 601/701/702/703.
+
+- L7 (2026-10-28, CERRADO): metricas corregidas. En 7.4 "Change per second" es
+  preprocessing type 10 con params VACIO (type 2 NO existe; mi error inicial).
+  Aplicado a los prototipos net.if.in/out (cascada a los descubiertos), historia
+  corrupta borrada, uplinks 702/703 re-apuntados (13057/13060) y graphs de
+  VLANs de 601/701/702/703 reconstruidos (13074-13077; 602 y 704 conservan los
+  originales 7816/8646). Verificado: 0 widgets rotos, valores en Mbps.
