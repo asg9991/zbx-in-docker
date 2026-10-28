@@ -92,3 +92,9 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   corrupta borrada, uplinks 702/703 re-apuntados (13057/13060) y graphs de
   VLANs de 601/701/702/703 reconstruidos (13074-13077; 602 y 704 conservan los
   originales 7816/8646). Verificado: 0 widgets rotos, valores en Mbps.
+
+- L8 (2026-10-28): ajustes finos. Triggers huerfanos de CPU borrados (6: 43598-43603,
+  quedaban duplicados por templates viejas) -> 1 por host. Items hw renombrados sin
+  "(trapper, mapper)" en template 10885. Uplinks con linea verde en gradiente
+  (drawtype 5 en prototipo 13042 + propagado). Widget 704 VLANs apuntado al graph
+  nuevo 13078 (el 8646 original habia sido borrado en la limpieza).
