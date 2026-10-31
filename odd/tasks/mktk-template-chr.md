@@ -127,3 +127,8 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   /opt/monitoring/proveedores-lan-backup-20261031-092323.sql. Receta en
   docs/graficos-site-a.md 4.7. Nota: el token de API anterior vencio a mitad de
   camino; el cambio de nombre del widget se hizo por SQL y el resto por API.
+
+- L12 (2026-10-31): decision del usuario: 702 y 703 NO tienen usuarios
+  dedicados. El "0 dedicadas" que reporta el mapper en esos CHRs es correcto,
+  no un hueco ni un pendiente. Se descarta del backlog: no hay nada que sumar
+  a {$PPP.DEDICATED.MATCHES} ni nada que investigar ahi.
