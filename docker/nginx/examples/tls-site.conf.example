@@ -35,12 +35,17 @@ server {
 
     server_tokens off;
 
+    # Docker embedded DNS: re-resolve zabbix-web so a recreated container
+    # (new IP) does not leave a stale upstream behind.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options SAMEORIGIN always;
     add_header X-Content-Type-Options nosniff always;
 
     location / {
-        proxy_pass http://zabbix-web:8080;
+        set $upstream http://zabbix-web:8080;
+        proxy_pass $upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -45,7 +45,7 @@ services:
       dockerfile: docker/Dockerfile.zabbix-server
       network: host
 
-    image: lab/zabbix-server:7.4.13
+    image: lab/zabbix-server:7.4.16
     container_name: zabbix-server
     restart: unless-stopped
 
@@ -92,7 +92,7 @@ services:
   zabbix-agent:
     # Nota: agent2 no tiene repo "-alpine" en Docker Hub; el tag alpine
     # vive en zabbix/zabbix-agent2.
-    image: zabbix/zabbix-agent2:alpine-7.4.13
+    image: zabbix/zabbix-agent2:alpine-7.4.16
     container_name: zabbix-agent
     restart: unless-stopped
 
@@ -126,7 +126,7 @@ services:
 
 
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4.13
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4.16
     container_name: zabbix-web
     restart: unless-stopped
 

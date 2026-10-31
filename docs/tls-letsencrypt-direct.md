@@ -63,5 +63,5 @@ curl -sI https://<dominio>/ | grep -iE 'strict-transport|server:'
 curl -s https://<dominio>/api_jsonrpc.php \
   -H 'Content-Type: application/json-rpc' \
   -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}'
-# → {"jsonrpc":"2.0","result":"7.4.13","id":1}
+# → {"jsonrpc":"2.0","result":"7.4.16","id":1}
 ```
