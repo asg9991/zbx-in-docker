@@ -348,6 +348,19 @@ Change per second
 
 # Estado actual
 
+## Alcance actual (2026-10-31)
+
+La integración está **operativa solo en site-c**: 4 items de external check
+(`unifi.py[devices,...]` y `unifi.py[discovery,...]`).
+
+En site-a, site-b y el lab hay **0 items de external check**: el script se
+despliega con el stack (el server monta `../scripts`) pero no se usa.
+
+Recordatorio operativo: el wrapper `scripts/unifi.py` hace `os.execv` de
+`scripts/unifi/unifi.py`, así que ese archivo **debe conservar el bit de
+ejecución en git** (`100755`). Si se pierde, el external check devuelve
+`PermissionError` en lugar de JSON.
+
 ## Implementado
 
 - Autenticación mediante UniFi Network API
