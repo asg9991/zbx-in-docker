@@ -94,7 +94,7 @@ sudo tee /opt/monitoring/data/certs/proxmox/proxmox-cluster-ca.crt
       - ../data/certs/proxmox:/usr/local/share/ca-certificates/proxmox:ro
 ```
 
-La imagen es `zabbix/zabbix-server-pgsql:alpine-7.4.13` (Alpine): las CAs se
+La imagen es `zabbix/zabbix-server-pgsql:alpine-7.4.16` (Alpine): las CAs se
 instalan con `update-ca-certificates` desde `/usr/local/share/ca-certificates/`.
 
 ### Paso 3 — Recrear el container y regenerar el trust store
