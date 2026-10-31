@@ -117,3 +117,13 @@ system.hw.* + triggers recreados). Alta de CHR nuevo = host + 1 template +
   habian dejado ids.nextid por detras de max -> proxima creacion por API
   colisionaba (widget_field 298442 < max 298463). Estado verificado del
   dashboard 1: 0 widgets graph rotos de 81.
+
+- L11 (2026-10-31): PROVEEDORES / "LAN - TOTAL" (graph 8511, widget 67516).
+  Se sumo el puerto del borde hacia 704 (GigabitEthernet0/1/8, ifIndex .32,
+  items 130851/131040) a los dos items calculados 134082/134083; titulo del
+  graph y del widget -> "LAN - TOTAL"; nombres de los calculados actualizados
+  a ...EDGE701/702/703/704. Verificado: valor calculado = suma de las 5
+  fuentes (IN 5067.7 / OUT 13371.4 Mbps). Backup:
+  /opt/monitoring/proveedores-lan-backup-20261031-092323.sql. Receta en
+  docs/graficos-site-a.md 4.7. Nota: el token de API anterior vencio a mitad de
+  camino; el cambio de nombre del widget se hizo por SQL y el resto por API.
