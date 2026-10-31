@@ -121,7 +121,7 @@ docker compose ps                      # todos Up, postgres healthy
 curl -s http://127.0.0.1/api_jsonrpc.php \
   -H 'Content-Type: application/json-rpc' \
   -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}'
-# → {"jsonrpc":"2.0","result":"7.4.13","id":1}
+# → {"jsonrpc":"2.0","result":"7.4.16","id":1}
 ```
 
 Frontend: `https://<SERVER_NAME>` (o `http://localhost` en lab sin TLS) — usuario por defecto `Admin` / `zabbix`.
