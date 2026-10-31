@@ -1,0 +1,129 @@
+# Origin vhost for a Cloudflare-proxied site (orange cloud).
+#
+# site-b (2026-10-31): the hostname is currently served in "Flexible" mode, so
+# Cloudflare dials the origin on 80. Ports 80 and 443 are published but both
+# are restricted to the official Cloudflare ranges below: a direct request to
+# the origin IP from anywhere else gets 403, so the Cloudflare WAF cannot be
+# bypassed over either port.
+#
+# Once the hostname is switched to "Full" (the origin already serves the
+# Cloudflare Origin certificate on 443), port 80 can be unpublished entirely.
+#
+# Refresh the allowlist from https://www.cloudflare.com/ips/ when it changes.
+#
+# Certs are the Cloudflare Origin certificate, mounted read-only from the
+# host ${DATA_DIR}/certs onto /etc/nginx/certs:
+#   fullchain.pem  mode 644
+#   privkey.pem    mode 600
+server {
+    listen 80;
+    server_name _;
+
+    # Docker embedded DNS: re-resolve zabbix-web so a recreated container
+    # (new IP) does not leave a stale upstream behind.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    allow 127.0.0.1;
+    allow ::1;
+    # Cloudflare IPv4
+    allow 173.245.48.0/20;
+    allow 103.21.244.0/22;
+    allow 103.22.200.0/22;
+    allow 103.31.4.0/22;
+    allow 141.101.64.0/18;
+    allow 108.162.192.0/18;
+    allow 190.93.240.0/20;
+    allow 188.114.96.0/20;
+    allow 197.234.240.0/22;
+    allow 198.41.128.0/17;
+    allow 162.158.0.0/15;
+    allow 104.16.0.0/13;
+    allow 104.24.0.0/14;
+    allow 172.64.0.0/13;
+    allow 131.0.72.0/22;
+    # Cloudflare IPv6
+    allow 2400:cb00::/32;
+    allow 2606:4700::/32;
+    allow 2803:f800::/32;
+    allow 2405:b500::/32;
+    allow 2405:8100::/32;
+    allow 2a06:98c0::/29;
+    allow 2c0f:f248::/32;
+    deny all;
+
+    # Legacy path: native installs served under /zabbix/ (old bookmarks).
+    location ~ ^/zabbix(/.*)?$ {
+        return 301 $scheme://$host$1;
+    }
+
+    location / {
+        set $upstream http://zabbix-web:8080;
+        proxy_pass $upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    server_tokens off;
+
+    # Docker embedded DNS: re-resolve zabbix-web so a recreated container
+    # (new IP) does not leave a stale upstream behind.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    allow 127.0.0.1;
+    allow ::1;
+    # Cloudflare IPv4
+    allow 173.245.48.0/20;
+    allow 103.21.244.0/22;
+    allow 103.22.200.0/22;
+    allow 103.31.4.0/22;
+    allow 141.101.64.0/18;
+    allow 108.162.192.0/18;
+    allow 190.93.240.0/20;
+    allow 188.114.96.0/20;
+    allow 197.234.240.0/22;
+    allow 198.41.128.0/17;
+    allow 162.158.0.0/15;
+    allow 104.16.0.0/13;
+    allow 104.24.0.0/14;
+    allow 172.64.0.0/13;
+    allow 131.0.72.0/22;
+    # Cloudflare IPv6
+    allow 2400:cb00::/32;
+    allow 2606:4700::/32;
+    allow 2803:f800::/32;
+    allow 2405:b500::/32;
+    allow 2405:8100::/32;
+    allow 2a06:98c0::/29;
+    allow 2c0f:f248::/32;
+    deny all;
+
+    # Legacy path: native installs served under /zabbix/ (old bookmarks).
+    location ~ ^/zabbix(/.*)?$ {
+        return 301 $scheme://$host$1;
+    }
+
+    location / {
+        set $upstream http://zabbix-web:8080;
+        proxy_pass $upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+    }
+}

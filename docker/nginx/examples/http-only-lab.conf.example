@@ -9,8 +9,13 @@ server {
     listen 80;
     server_name _;
 
+    # Docker embedded DNS: re-resolve zabbix-web so a recreated container
+    # (new IP) does not leave a stale upstream behind.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     location / {
-        proxy_pass http://zabbix-web:8080;
+        set $upstream http://zabbix-web:8080;
+        proxy_pass $upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
