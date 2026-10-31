@@ -68,3 +68,57 @@ devices:
           - every: 480
             duration: 30
             value: 0
+
+  # CASCADA (demo causa raiz): core que se congestiona y 2 ONUs detras
+  # que degradan en la MISMA ventana (cada 15 min, 4 min). Misma every/duration
+  # = ventanas sincronizadas por reloj: N alarmas, 1 causa.
+  core-sim-05:
+    metrics:
+      - key: lab.net.packet.loss.pct
+        baseline: 1
+        jitter: 0.5
+        incidents:
+          - every: 900      # misma ventana que las ONUs
+            duration: 240
+            value: 40
+      - key: lab.net.latency.ms
+        baseline: 20
+        jitter: 5
+        incidents:
+          - every: 900
+            duration: 240
+            value: 280
+
+  onu-sim-06:
+    metrics:
+      - key: lab.net.packet.loss.pct
+        baseline: 0
+        jitter: 0.5
+        incidents:
+          - every: 900
+            duration: 240
+            value: 30
+      - key: lab.net.latency.ms
+        baseline: 22
+        jitter: 5
+        incidents:
+          - every: 900
+            duration: 240
+            value: 220
+
+  onu-sim-07:
+    metrics:
+      - key: lab.net.packet.loss.pct
+        baseline: 0
+        jitter: 0.5
+        incidents:
+          - every: 900
+            duration: 240
+            value: 28
+      - key: lab.net.latency.ms
+        baseline: 25
+        jitter: 5
+        incidents:
+          - every: 900
+            duration: 240
+            value: 210
