@@ -163,10 +163,10 @@ persiste, `compose restart zabbix-server`.
 ### Archivos por cliente
 
 Lo genérico vive en `docker/`, `scripts/`, `systemd/` y `docs/`. Lo de cada
-cliente vive en `overlays/<cliente>/` (p. ej.
-`overlays/site-b/verify-site-b-migration.sh`) más su `.env`, certificados y
-volcados en el host, fuera de git. Nada con nombre de cliente va en
-`scripts/` raíz.
+cliente vive en su repo privado (`zbx-in-docker-<cliente>`), bajo `client/`,
+más su `.env`, certificados y volcados en el host, fuera de git. Nada con
+nombre de cliente va en este repo: si una particularidad obliga a tocar el
+genérico, el genérico no es genérico.
 
 La copia mensual se sube a Drive a
 `projects/CLIENTES/<SITE>/zbx-backups/YYYYMM/` (manual o con
@@ -192,8 +192,8 @@ Notas:
 
 ## Documentos relacionados
 
-- `docs/runbook-migracion-site-a.md` — procedimiento de corte de site-a.
-- `docs/runbook-migracion-site-b.md` — procedimiento de corte de site-b.
+- `zbx-in-docker-site-a:client/docs/runbook-migracion-site-a.md` — procedimiento de corte de site-a (repo privado).
+- `zbx-in-docker-site-b:client/docs/runbook-migracion-site-b.md` — procedimiento de corte de site-b (repo privado).
 - `docs/tls-letsencrypt-direct.md` — TLS con Let's Encrypt directo.
 - `docs/tls-cloudflare-origin.md` — TLS con origen Cloudflare.
 - `docs/migracion-checklist.md` — lista de verificación posterior a la
