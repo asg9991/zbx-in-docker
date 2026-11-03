@@ -8,7 +8,7 @@
 #
 # Behavior: idempotent copy of fullchain.pem + privkey.pem into the certs
 # directory nginx mounts :ro, then restart ONLY the nginx service.
-# All paths are configurable via env; defaults are the site-a-tested ones.
+# All paths are configurable via env; defaults are the tested production ones.
 set -euo pipefail
 
 : "${DATA_DIR:=/opt/monitoring/data}"

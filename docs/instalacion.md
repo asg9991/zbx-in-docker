@@ -78,9 +78,9 @@ DATA_DIR=/home/usuario/zbx-in-docker/data
 
 ## Tuning — Ajustar el server a tu escala (¡no uses los defaults en producción!)
 
-La imagen oficial trae defaults mínimos: `StartPollers=5`, `StartPingers=1`, `CacheSize=32M`. Con >50 hosts o mucho SNMP/ICMP eso genera cola, `temporarily disabling` y falsos positivos idénticos a los vistos en site-a.
+La imagen oficial trae defaults mínimos: `StartPollers=5`, `StartPingers=1`, `CacheSize=32M`. Con >50 hosts o mucho SNMP/ICMP eso genera cola, `temporarily disabling` y falsos positivos idénticos a los vistos en producción.
 
-El repo trae un **perfil base productivo** en `.env.example` probado en site-a (123 hosts / 28k items / 32 APs / 8 cores / 62 GiB):
+El repo trae un **perfil base productivo** en `.env.example` probado en producción (123 hosts / 28k items / 32 APs / 8 cores / 62 GiB):
 
 ```ini
 ZBX_STARTPOLLERS=30
@@ -99,7 +99,7 @@ ZBX_VALUECACHESIZE=2G
 | Variable | Qué regula | Cuándo subirla |
 |---|---|---|
 | `ZBX_STARTPOLLERS` | Pollers genéricos | Muchos items agent/SNMP sin cola |
-| `ZBX_STARTSNMPPOLLERS` | SNMP exclusivo | Muchos APs/switches SNMP (ej. site-a 32 APs) |
+| `ZBX_STARTSNMPPOLLERS` | SNMP exclusivo | Muchos APs/switches SNMP (ej. 32 APs) |
 | `ZBX_STARTPINGERS` | ICMP (fping) | Muchos `icmpping` (1 pinger ≈ 1k checks/min) |
 | `ZBX_CACHESIZE` / `VALUECACHESIZE` | Config cache | `CacheSize` o `ValueCache` >80% en Dashboard |
 | `ZBX_STARTPREPROCESSORS` | Preprocessing | `queued` alto en `ps aux` |

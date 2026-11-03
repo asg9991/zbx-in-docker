@@ -350,10 +350,10 @@ Change per second
 
 ## Alcance actual (2026-10-31)
 
-La integración está **operativa solo en site-c**: 4 items de external check
+La integración está **operativa solo en un sitio**: 4 items de external check
 (`unifi.py[devices,...]` y `unifi.py[discovery,...]`).
 
-En site-a, site-b y el lab hay **0 items de external check**: el script se
+En el resto de los sitios y en el lab hay **0 items de external check**: el script se
 despliega con el stack (el server monta `../scripts`) pero no se usa.
 
 Recordatorio operativo: el wrapper `scripts/unifi.py` hace `os.execv` de

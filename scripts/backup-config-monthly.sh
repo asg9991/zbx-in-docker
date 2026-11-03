@@ -6,14 +6,14 @@
 # resultado pesa unos pocos MB comprimido.
 #
 # Uso:
-#   SITE=site-a scripts/backup-config-monthly.sh
-#   SITE=site-b scripts/backup-config-monthly.sh
-#   # Solo host nativo pre-migración (site-b vieja 198.51.100.38):
-#   SITE=site-b DB_TYPE=mysql scripts/backup-config-monthly.sh
+#   SITE=sitio-a scripts/backup-config-monthly.sh
+#   SITE=sitio-b scripts/backup-config-monthly.sh
+#   # Solo host nativo pre-migración (sitio viejo, 198.51.100.38):
+#   SITE=sitio-b DB_TYPE=mysql scripts/backup-config-monthly.sh
 #
 # Variables de entorno (todas opcionales):
-#   SITE            Sitio a respaldar (por defecto: site-a). Acepta cualquier
-#                   cliente futuro en minúsculas, p. ej. site-a, site-b.
+#   SITE            Sitio a respaldar (obligatorio). Minúsculas, números y
+#                   guiones; p. ej. sitio-a.
 #   DB_TYPE         postgres | mysql | auto (por defecto: postgres, el stack
 #                   ya migrado; usar mysql SOLO en host nativo pre-migración,
 #                   auto detecta postgres de compose y si no responde aborta
@@ -43,7 +43,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SITE="${SITE:-site-a}"
+SITE="${SITE:?falta SITE (el unit zbx-backup@.service lo pasa como %i)}"
 DB_TYPE="${DB_TYPE:-postgres}"
 DATA_DIR="${DATA_DIR:-/opt/monitoring/data}"
 BKP_DIR="${BKP_DIR:-${DATA_DIR}/bkp-pre-docker}"
@@ -62,7 +62,7 @@ HISTORY_TABLES="history history_uint history_str history_text history_log trends
 
 # Validación mínima del nombre de sitio (genérico para clientes futuros).
 if [[ ! "$SITE" =~ ^[a-z0-9-]+$ ]]; then
-  echo "ERROR: SITE inválido: '$SITE' (usar minúsculas, ej. site-a, site-b)." >&2
+  echo "ERROR: SITE inválido: '$SITE' (usar minúsculas, ej. sitio-a)." >&2
   exit 1
 fi
 
@@ -120,7 +120,7 @@ else
   # Vía docker exec al contenedor (sin publicar puertos, sin clave en CLI).
   # --exclude-table-data: conserva el CREATE TABLE pero omite las filas
   # (equivalente al --ignore-table de datos de MySQL en un solo volcado).
-  # Validado en site-a 2026-09-19: DB 3313 MB -> 6.9M gz en 2.3s.
+  # Validado en producción 2026-09-19: DB 3313 MB -> 6.9M gz en 2.3s.
   EXCLUDES=()
   for t in $HISTORY_TABLES; do
     EXCLUDES+=(--exclude-table-data="$t")

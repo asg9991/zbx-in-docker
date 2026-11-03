@@ -123,7 +123,7 @@ Una vez por mes, cada sitio genera un volcado **solo-configuración** con
 `scripts/backup-config-monthly.sh` (variables `SITE`, `DB_TYPE`, `DATA_DIR`):
 
 ```bash
-SITE=site-a scripts/backup-config-monthly.sh
+SITE=sitio-a scripts/backup-config-monthly.sh
 ```
 
 El script excluye siempre las 7 tablas de historial/tendencias
@@ -141,13 +141,13 @@ El respaldo corre solo con un timer por sitio (unidad instanciada):
 # Instalación (una vez por host, con sudo):
 sudo cp systemd/zbx-backup@.service systemd/zbx-backup@.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now zbx-backup@site-a.timer   # o @site-b en site-b
+sudo systemctl enable --now zbx-backup@sitio-a.timer   # o @sitio-b en sitio-b
 
 # Chequeo mensual (sin sudo):
 systemctl list-timers 'zbx-backup@*' --all
-cat /opt/monitoring/data/bkp-pre-docker/.last-backup-site-a.ok
-journalctl -u 'zbx-backup@site-a.service' --since '35 days ago' | tail -5
-ls -lh /opt/monitoring/data/bkp-pre-docker/zbx-config-site-a-$(date +%Y%m).sql.gz
+cat /opt/monitoring/data/bkp-pre-docker/.last-backup-sitio-a.ok
+journalctl -u 'zbx-backup@sitio-a.service' --since '35 days ago' | tail -5
+ls -lh /opt/monitoring/data/bkp-pre-docker/zbx-config-sitio-a-$(date +%Y%m).sql.gz
 ```
 
 Si el sello tiene más de 35 días o el timer figura fallido, el respaldo no
@@ -178,22 +178,21 @@ configuración, no las series históricas.
 
 | Sitio | Estado | `SERVER_NAME` (ejemplo) | `DATA_DIR` | Respaldo | Puertos / TLS |
 |---|---|---|---|---|---|
-| site-a | Migrado | `zabbix.example.com` | `/opt/monitoring/data` | `/opt/monitoring/bkp-pre-docker` | Producción en `80/443` con TLS |
-| site-b | Migrado 2026-09-28 | `zabbix.example.org` | `/opt/monitoring/data` | `/opt/monitoring/data/bkp-pre-docker` | Corte completo a `198.51.100.38` (réplica de privadas `.113`/`198.51.100.32`); origen HTTP vía Cloudflare Flexible hasta Fase2 TLS |
+| Sitio A | Migrado | `zabbix.example.com` | `/opt/monitoring/data` | `/opt/monitoring/bkp-pre-docker` | Producción en `80/443` con TLS |
+| Sitio B | Migrado 2026-09-28 | `zabbix.example.org` | `/opt/monitoring/data` | `/opt/monitoring/data/bkp-pre-docker` | Corte completo a `198.51.100.38`; origen HTTP vía Cloudflare Flexible hasta Fase2 TLS |
 
 Notas:
 
-- site-a operó como migración en el lugar (`in-place`); su fila sirve como
+- Sitio A operó como migración en el lugar (`in-place`); su fila sirve como
   referencia de método ya validado, no como fuente de datos para otros
   sitios.
-- site-b migra hacia una máquina virtual nueva: la Fase 1 expone el
+- Sitio B migra hacia una máquina virtual nueva: la Fase 1 expone el
   servicio por HTTP en un puerto alternativo, y la Fase 2 lo traslada a
   los puertos de producción con TLS a través de Cloudflare.
 
 ## Documentos relacionados
 
-- `zbx-in-docker-site-a:client/docs/runbook-migracion-site-a.md` — procedimiento de corte de site-a (repo privado).
-- `zbx-in-docker-site-b:client/docs/runbook-migracion-site-b.md` — procedimiento de corte de site-b (repo privado).
+- Los runbooks de corte por sitio viven en el repo privado de cada cliente.
 - `docs/tls-letsencrypt-direct.md` — TLS con Let's Encrypt directo.
 - `docs/tls-cloudflare-origin.md` — TLS con origen Cloudflare.
 - `docs/migracion-checklist.md` — lista de verificación posterior a la
