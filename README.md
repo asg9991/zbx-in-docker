@@ -131,13 +131,3 @@ Actualmente:
 - Template basado en Low Level Discovery
 - Master Item + Dependent Items
 
-## Próximas mejoras
-
-- Utilización de radio (Radio Utilization)
-- Potencia de transmisión (TX Power)
-- CPU de Access Points
-- Memoria
-- Uptime
-- Estadísticas por radio
-- Dashboard específico para UniFi
-- Template para UniFi Switches
