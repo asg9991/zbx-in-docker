@@ -49,10 +49,11 @@ trackers y particularidades) están en el repo privado del cliente:
 client/agent-context.md
 ```
 
-En un servidor de cliente el checkout vive en `/opt/monitoring/zbx-in-docker`,
-así que el archivo está en
-`/opt/monitoring/zbx-in-docker/client/agent-context.md`. Si existe, leerlo antes
-de operar y usarlo como índice complementario a este.
+El trabajo de cliente se hace **por SSH sobre su servidor**: el checkout vive en
+`/opt/monitoring/zbx-in-docker`, y el contexto está en
+`/opt/monitoring/zbx-in-docker/client/agent-context.md`. Leerlo antes de operar y
+usarlo como índice complementario a este. No clonar repos de cliente en la
+máquina de trabajo: el único repo local es este, el genérico.
 
 ## Comandos frecuentes
 
