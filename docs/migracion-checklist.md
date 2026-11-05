@@ -1,4 +1,4 @@
-# Migración Zabbix nativo → Docker — checklist post-migración (lecciones site-a, 2026-09-15/16)
+# Migración Zabbix nativo → Docker — checklist post-migración (lecciones de una migración real, 2026-09-15/16)
 
 Todo lo que se dio por asumido y mordió. Verificar uno por uno antes de dar la
 migración por cerrada.
@@ -62,7 +62,7 @@ migración por cerrada.
 
 - Comparar defaults contra el esquema stock (`database/postgresql/schema.sql`
   del tarball oficial): lo de pgloader trae estructura ok pero puede soltar
-  `DEFAULT`. Verificado en site-a: 63 columnas afectadas.
+  `DEFAULT`. Verificado en producción: 63 columnas afectadas.
 - Tras altas por API, verificar `hosts.name_upper` (ver §9 del checklist de
   servicio).
 ## 8. Dashboards: backup antes de tocar por API
@@ -73,17 +73,17 @@ migración por cerrada.
   o `pg_dump` de las tablas `dashboard*`/`widget*`.
 - La base vieja (MySQL del host, si existe) guarda el layout original:
   `widget` + `widget_field` por `dashboard_pageid`.
-- Lección site-a 2026-09: 12 páginas borradas, reconstruidas desde logs nginx
+- Lección 2026-09: 12 páginas borradas, reconstruidas desde logs nginx
   (`chart2?graphid=` + referrer `page=`) + base vieja. Verificar páginas
   hermanas después de cada mutación, no solo la tocada.
 - Ritual obligatorio: GET completo → backup JSON con fecha → modificar →
   PUT → verificar conteo de widgets POR PÁGINA (no solo total). Los widgets
   vacíos (solo `reference`) pueden caerse en silencio en el round-trip.
 
-## 9. Gates site-b — site-b-migration (config-only, corte 2026-09-28 a 198.51.100.38)
+## 9. Gates de migración config-only (corte 2026-09-28 a 198.51.100.38)
 
-> site-a es referencia de metodo lab-validada solamente; estos gates se ejecutan
-> exclusivamente sobre dumps y stack de site-b.
+> La migración previa es referencia de método lab-validada solamente; estos gates se ejecutan
+> exclusivamente sobre dumps y stack del sitio a migrar.
 
 - Conteos post-migracion (tras `docker compose up -d` y auto-migracion 7000000->7040011):
   corte 2026-09-28: `hosts` habilitados **26**, `templates` **349**,
@@ -100,7 +100,7 @@ migración por cerrada.
 
 ## 10. Validacion pre-corte — lab dry-run obligatorio
 
-- Lab dry-run verde antes de ventana site-b: stremear dumps frescos de site-b por SSH :14422 al lab → MySQL temporal `mysql:8.0 --default-authentication-plugin=mysql_native_password` → pgloader `workers=4 concurrency=2` → `zabbix-server:7.4.13` → capturar `docker logs zabbix-server | grep -i "upgrade\|database"` (7000000->7040011) y conteos contra fresh dump (corte 2026-09-28: 207 tablas, 26 hosts, 349 templates, 24125 items, 9878 triggers). Gate: 0 errores pgloader salvo FK conocido, API 7.4.13, Queue limpia. Sin dry-run verde no se corta.
+- Lab dry-run verde antes de la ventana: stremear dumps frescos del sitio por SSH :14422 al lab → MySQL temporal `mysql:8.0 --default-authentication-plugin=mysql_native_password` → pgloader `workers=4 concurrency=2` → `zabbix-server:7.4.13` → capturar `docker logs zabbix-server | grep -i "upgrade\|database"` (7000000->7040011) y conteos contra fresh dump (corte 2026-09-28: 207 tablas, 26 hosts, 349 templates, 24125 items, 9878 triggers). Gate: 0 errores pgloader salvo FK conocido, API 7.4.13, Queue limpia. Sin dry-run verde no se corta.
 
 ## 11. Triggers pgloader: la cola `changelog` (incidente site-a/site-b 2026-09-30, NO trasladar)
 

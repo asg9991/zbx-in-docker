@@ -10,6 +10,13 @@ data/
 # Logs
 *.log
 
+# Backups locales (nunca versionar)
+*.bak
+*.bak-*
+
+# Backups de variables de entorno
+.env.bak*
+
 # Python
 __pycache__/
 *.py[cod]

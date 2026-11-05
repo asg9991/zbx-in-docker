@@ -1,6 +1,6 @@
 # Origin vhost for a Cloudflare-proxied site (orange cloud).
 #
-# site-b (2026-10-31): the hostname is currently served in "Flexible" mode, so
+# Cloudflare (2026-10-31): the hostname is currently served in "Flexible" mode, so
 # Cloudflare dials the origin on 80. Ports 80 and 443 are published but both
 # are restricted to the official Cloudflare ranges below: a direct request to
 # the origin IP from anywhere else gets 403, so the Cloudflare WAF cannot be
