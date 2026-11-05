@@ -17,12 +17,17 @@ Requisitos base del host nuevo: Ubuntu 24.04, Docker 24 o superior
 
 1. **Instalar dependencias base.** Ubuntu 24.04 actualizado, Docker 24+,
    `git` y `gzip` disponibles.
-2. **Clonar el repositorio.**
+2. **Clonar el repositorio del cliente.**
+   En el servidor de un cliente se clona **su repo privado**
+   (`zbx-in-docker-<cliente>`), no el genérico. El checkout va siempre en
+   `/opt/monitoring/zbx-in-docker` y usa el alias SSH del cliente:
    ```bash
-   git clone <URL-REPO> /opt/monitoring/zbx-in-docker
+   git clone git@github.com-zbx-<cliente>:<org>/zbx-in-docker-<cliente>.git \
+     /opt/monitoring/zbx-in-docker
    cd /opt/monitoring/zbx-in-docker
    git checkout <RAMA-O-TAG-PINNEADO>
    ```
+   Regla completa, alta de cliente y claves: `docs/repos-por-cliente.md`.
 3. **Recrear `docker/.env` desde la bóveda.** Copiar la plantilla
    (`docker/.env.example`) y completar exclusivamente desde la bóveda,
    sin inventar valores. Variables relevantes:
@@ -167,6 +172,11 @@ cliente vive en su repo privado (`zbx-in-docker-<cliente>`), bajo `client/`,
 más su `.env`, certificados y volcados en el host, fuera de git. Nada con
 nombre de cliente va en este repo: si una particularidad obliga a tocar el
 genérico, el genérico no es genérico.
+
+**Ese repo privado es el que se clona y despliega en el servidor del cliente**
+(`/opt/monitoring/zbx-in-docker`), con alias y deploy key propios. El genérico
+no se despliega en servidores de clientes. Procedimiento completo:
+`docs/repos-por-cliente.md`.
 
 La copia mensual se sube a Drive a
 `projects/CLIENTES/<SITE>/zbx-backups/YYYYMM/` (manual o con

@@ -90,6 +90,9 @@ scripts/
 templates/
 ```
 
+`client/` no existe en este repo: vive únicamente en el repo privado de cada
+cliente. Ver `docs/repos-por-cliente.md`.
+
 ### scripts/
 
 ```
@@ -113,6 +116,8 @@ La documentación técnica se encuentra en el directorio `docs`.
 Actualmente:
 
 - `ROADMAP.md`
+- `repos-por-cliente.md` — regla de repos: genérico + uno privado por cliente
+- `recupero.md` — reconstrucción, respaldos y qué vive en cada lugar
 - `unifi-external-check.md`
 
 ---
