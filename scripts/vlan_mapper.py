@@ -96,6 +96,9 @@ DEFAULT_CONFIG = {
             "macro": "{$PPP.DEDICATED.MATCHES}",
         },
         "whitelist_fallback": None,
+        # Normalizacion opcional del nombre publicado: mapa valor->valor.
+        # Los datos concretos de cada sitio van en su config (fuera de git).
+        "name_normalizations": {},
     },
     "snmp": {
         "version": 2,
@@ -436,6 +439,24 @@ def _psql_scalar(dbcfg, sql):
     return result.stdout.strip() or None
 
 
+def _community(host_config, config):
+    """Community SNMP explicito: por host o global. Nunca un default silencioso.
+
+    Devolver "public" al faltar la config hacia que un error de configuracion
+    se viera como un equipo caido (o, peor, funcionara contra un equipo con el
+    community de fabrica). Si no esta en ninguno de los dos niveles, se corta
+    nombrando el host: configurar el community es parte del alta del equipo.
+    """
+    value = host_config.get("community") or config.get("snmp", {}).get("community")
+    if not value:
+        raise SystemExit(
+            "config invalida: falta 'community' para %s "
+            "(definilo por host o en snmp.community)"
+            % (host_config.get("ip") or host_config.get("zabbix_host") or "host desconocido")
+        )
+    return value
+
+
 def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwalk):
     """Walk + filtro de un CHR.
 
@@ -446,7 +467,7 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
     snmp = config.get("snmp", {})
     vlan = config.get("vlan", {})
     ppp_cfg = config.get("ppp", {})
-    community = host_config.get("community") or snmp.get("community", "public")
+    community = _community(host_config, config)
 
     def walk(oid):
         return walker(
@@ -489,9 +510,13 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
                 # agente no respondio. No publicar 0 evita pisar el ultimo
                 # valor bueno con un dato falso (visto en 703 el 2026-10-22).
                 raise RuntimeError("el walk de sesiones PPP devolvio 0 filas (OID no disponible o agente sin respuesta)")
+            dedicated = filter_dedicated(ppp_rows, ppp_cfg.get("whitelist"))
+            normalizaciones = ppp_cfg.get("name_normalizations") or {}
+            for entry in dedicated:
+                entry["ppp_name"] = normalizaciones.get(entry["ppp_name"], entry["ppp_name"])
             ppp = {
                 "sessions": count_ppp_sessions(ppp_rows),
-                "dedicated": filter_dedicated(ppp_rows, ppp_cfg.get("whitelist")),
+                "dedicated": dedicated,
                 "rows": ppp_rows,
             }
         except Exception as exc:
@@ -514,7 +539,7 @@ def collect_hw(host_config, config, hw_walker=run_snmpwalk):
     """
     hw_cfg = config.get("hw", {})
     snmp = config.get("snmp", {})
-    community = host_config.get("community") or snmp.get("community", "public")
+    community = _community(host_config, config)
     name = host_config.get("zabbix_host")
 
     def walk(oid):

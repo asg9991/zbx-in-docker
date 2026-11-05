@@ -225,6 +225,26 @@ class TestVlanMapper(unittest.TestCase):
             self.assertIn("index", entry)
             self.assertIsInstance(entry["index"], int)
 
+    def test_name_normalizations_apply_to_dedicated(self):
+        """El nombre publicado se normaliza desde la config (dato del sitio)."""
+        self.config["ppp"]["name_normalizations"] = {
+            "Enlace-session-h": "<pppoe-session-h>"}
+        _vlans, _rows, ppp, error = vlan_mapper.collect_host(
+            self.config["hosts"][0], self.config,
+            walker=fake_walker(self.text), ppp_walker=fake_ppp_walker(self.ppp_text))
+        self.assertIsNone(error)
+        names = [d["ppp_name"] for d in ppp["dedicated"]]
+        self.assertIn("<pppoe-session-h>", names)
+        self.assertNotIn("Enlace-session-h", names)
+
+    def test_missing_community_raises(self):
+        """Sin community explicito el mapper corta: no inventa un default."""
+        config = json.loads(json.dumps(self.config))
+        config["snmp"].pop("community", None)
+        with self.assertRaises(SystemExit):
+            vlan_mapper.collect_host(config["hosts"][0], config,
+                                     walker=fake_walker(self.text))
+
     def test_dedicated_json_is_small(self):
         """El JSON del master debe entrar de sobra en los 64 KB del item.
 
