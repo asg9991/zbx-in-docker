@@ -660,8 +660,10 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
                 print("[%s] %s: mapa de dedicados publicado (%s)" % (stamp, name, output))
 
         # 3b) mapa de interfaces (para la LLD trapper de interfaces)
+        #     En hw_only `rows` es 0 (no se camina la ifTable): este bloque
+        #     debe saltarse, igual que VLAN/PPP.
         if_map_cfg = config.get("if_map", {})
-        if if_map_cfg.get("enabled"):
+        if not hw_only and if_map_cfg.get("enabled"):
             regex = read_host_macro(if_map_cfg.get("source"), name,
                                     if_map_cfg.get("macro", "{$NET.IF.IFDESCR.MATCHES}"))
             if_map = filter_if_map(rows, regex)

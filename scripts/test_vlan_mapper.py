@@ -767,6 +767,34 @@ class IfMapTest(unittest.TestCase):
     def test_key_for_if_map(self):
         self.assertEqual(vlan_mapper.key_for({"keys": {"if_map": "net.if.map"}}, "if_map"), "net.if.map")
 
+    def test_hw_only_run_skips_if_map_publish(self):
+        """Regresion: con --hw-only `rows` vale 0 y el bloque if_map iteraba
+        un int (TypeError). El bloque tiene que quedar guardado por el flag."""
+        config = json.loads(json.dumps(vlan_mapper.DEFAULT_CONFIG))
+        config["hosts"] = config["hosts"][:1]
+        config["if_map"]["enabled"] = True
+        config["hw"]["enabled"] = True
+        published = []
+
+        def spy(zabbix_config, host, key, payload):
+            published.append(key)
+            return True, "sent: 1"
+
+        original_publish = vlan_mapper.publish
+        original_macro = vlan_mapper.read_host_macro
+        vlan_mapper.publish = spy
+        vlan_mapper.read_host_macro = lambda *args, **kwargs: r"^vlan"
+        try:
+            code = vlan_mapper.run(config, walker=fake_hw_walker(), ppp_walker=fake_hw_walker(),
+                                   hw_walker=fake_hw_walker(), hw_only=True)
+        finally:
+            vlan_mapper.publish = original_publish
+            vlan_mapper.read_host_macro = original_macro
+        self.assertEqual(code, 0, "hw-only no debe romper con if_map habilitado")
+        self.assertEqual(sorted(published), sorted(HW_KEYS))
+        self.assertNotIn(vlan_mapper.key_for(config["zabbix"], "if_map"), published,
+                         "hw-only no debe publicar el mapa de interfaces")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
