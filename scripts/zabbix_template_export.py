@@ -12,7 +12,7 @@ Usage:
 Example:
     scripts/zabbix_template_export.py \
         https://127.0.0.1/api_jsonrpc.php "$ZABBIX_TOKEN" 10870 \
-        templates/template_ppp_dedicated_users.yaml
+        templates/template_mikrotik_vlan_generic.yaml
 
 Notes:
   * Zabbix 7.4 renamed the API parameters: `template.get` ignores `ids`

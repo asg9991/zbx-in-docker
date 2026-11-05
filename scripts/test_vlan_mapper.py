@@ -25,13 +25,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import vlan_mapper  # noqa: E402
 
-FIXTURE = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_703_ifdescr_walk.txt")
-FIXTURE_PPP = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_703_ppp_sessions_walk.txt")
+FIXTURE = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_test_ifdescr_walk.txt")
+FIXTURE_PPP = os.path.join(vlan_mapper.FIXTURE_DIR, "chr_test_ppp_sessions_walk.txt")
 
-# La whitelist real del template 10869 (leida de la base de site-a el 2026-10-22)
-PPP_WHITELIST = (r"(?i)^(<pppoe-coopvinia>|<pppoe-multijactosa>|<pppoe-franciscosellart>|"
-                  r"<pppoe-arrebeef>|<pppoe-garfin>|<pppoe-buratovichhnos>|"
-                  r"<pppoe-southernseeds>|<pppoe-patrullarural>|Enlace-patrullarural)$")
+# Whitelist de ejemplo (misma forma que la macro del template de dedicados)
+PPP_WHITELIST = (r"(?i)^(<pppoe-session-a>|<pppoe-session-b>|<pppoe-session-c>|"
+                  r"<pppoe-session-d>|<pppoe-session-e>|<pppoe-session-f>|"
+                  r"<pppoe-session-g>|<pppoe-session-h>|Enlace-session-h)$")
 
 # El mapper publica TODAS las interfaces vlan* del router (la macro de host
 # decide cuales se monitorean: el filtro de la LLD las rechaza).
@@ -218,8 +218,8 @@ class TestVlanMapper(unittest.TestCase):
         dedicated = vlan_mapper.filter_dedicated(rows, PPP_WHITELIST)
         names = [entry["ppp_name"] for entry in dedicated]
         self.assertEqual(len(dedicated), 9)
-        self.assertIn("<pppoe-coopvinia>", names)
-        self.assertIn("Enlace-patrullarural", names)
+        self.assertIn("<pppoe-session-a>", names)
+        self.assertIn("Enlace-session-h", names)
         self.assertNotIn("<pppoe-aliciacanovas0>", names)
         for entry in dedicated:
             self.assertIn("index", entry)
@@ -319,7 +319,7 @@ class TestVlanMapper(unittest.TestCase):
 
         class FakeResult:
             returncode = 0
-            stdout = "(?i)^(<pppoe-coopvinia>|<pppoe-garfin>)$\n"
+            stdout = "(?i)^(<pppoe-session-a>|<pppoe-session-e>)$\n"
             stderr = ""
 
         def fake_run(command, **kwargs):
@@ -334,7 +334,7 @@ class TestVlanMapper(unittest.TestCase):
                  "macro": "{$PPP.DEDICATED.MATCHES}"})
         finally:
             vlan_mapper.subprocess.run = original
-        self.assertIn("<pppoe-coopvinia>", value)
+        self.assertIn("<pppoe-session-a>", value)
         self.assertTrue(calls[0][0].endswith("docker"))
         self.assertIn("zabbix-postgres", calls[0])
         self.assertIn("hostmacro", calls[0][-1])

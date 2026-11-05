@@ -160,13 +160,13 @@ server puede tardar en verlos en caché (`cannot retrieve key ... from
 configuration cache`) — `zabbix_server -R config_cache_reload`, y si
 persiste, `compose restart zabbix-server`.
 
-### Archivos por cliente
+### Qué se versiona
 
-Lo genérico vive en `docker/`, `scripts/`, `systemd/` y `docs/`. Lo de cada
-cliente vive en `overlays/<cliente>/` (p. ej.
-`overlays/site-b/verify-site-b-migration.sh`) más su `.env`, certificados y
-volcados en el host, fuera de git. Nada con nombre de cliente va en
-`scripts/` raíz.
+El repositorio contiene únicamente configuración y código genéricos:
+`docker/`, `scripts/`, `systemd/`, `templates/` y `docs/`. Todo lo que
+diferencia a un sitio (`.env`, certificados, volcados y cualquier valor
+concreto de despliegue) vive fuera de git, en el host y en la bóveda de
+secretos del sitio.
 
 La copia mensual se sube a Drive a
 `projects/CLIENTES/<SITE>/zbx-backups/YYYYMM/` (manual o con
