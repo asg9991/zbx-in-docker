@@ -525,9 +525,10 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
             ppp["dedicated"] = dedicated
             ppp["rows"] = ppp_rows
         except Exception as exc:
-            # el lado PPP no debe tumbar al lado VLAN
-            print("[ppp] %s: fallo el walk de sesiones PPP: %s" % (host_config.get("zabbix_host"), exc))
-            ppp = None
+            # el lado PPP no debe tumbar al lado VLAN. El conteo ya salio del
+            # ifTable y se publica igual; solo se omite el mapa de dedicados.
+            print("[ppp] %s: fallo el walk de la tabla de colas: %s"
+                  % (host_config.get("zabbix_host"), exc))
     return vlans, rows, ppp, None
 
 

@@ -313,14 +313,16 @@ class TestVlanMapper(unittest.TestCase):
         finally:
             vlan_mapper.publish = original
         self.assertEqual(code, 0)
-        self.assertEqual([key for key, _payload in published], ["net.vlan.map"])
+        self.assertEqual([key for key, _payload in published],
+                         ["net.vlan.map", "mikrotik.ppp.active.count"])
+        self.assertEqual(published[1][1], "2159",
+                         "el conteo sale del ifTable aunque falle el walk de colas")
 
-    def test_ppp_walk_with_zero_rows_does_not_publish_ppp_but_keeps_the_vlans(self):
-        """Un walk PPP con 0 filas no publica PPP, pero si publica las VLANs.
+    def test_zero_queue_rows_publishes_count_but_not_the_map(self):
+        """Un walk de colas vacio no publica el mapa, pero si el conteo real.
 
-        El guard del mapper trata un walk PPP vacio como walk corto/fallido:
-        no publica el conteo (evita pisar el ultimo valor bueno con 0) y deja
-        intacto el lado VLAN.
+        El conteo sale de las interfaces `<pppoe-*>` del ifTable; la tabla de
+        colas solo aporta el indice para el mapa de dedicados.
         """
         published = []
 
@@ -340,15 +342,17 @@ class TestVlanMapper(unittest.TestCase):
         finally:
             vlan_mapper.publish = original
         self.assertEqual(code, 0)
-        self.assertEqual([key for key, _payload in published], ["net.vlan.map"],
-                         "con 0 filas PPP solo se publica el mapa de VLANs")
+        self.assertEqual([key for key, _payload in published],
+                         ["net.vlan.map", "mikrotik.ppp.active.count"],
+                         "con 0 filas de colas se publica el conteo, no el mapa")
 
         vlans, _rows, ppp, error = vlan_mapper.collect_host(
             self.config["hosts"][0], self.config, walker=fake_walker(self.text),
             ppp_walker=empty_ppp_walker
         )
         self.assertIsNone(error)
-        self.assertIsNone(ppp, "con 0 filas PPP el resultado no debe traer conteo")
+        self.assertEqual(ppp["sessions"], 2159, "el conteo sale del ifTable")
+        self.assertIsNone(ppp["dedicated"], "sin walk de colas no hay mapa")
         self.assertEqual(len(vlans), 9, "el lado VLAN no se toca")
 
     def test_key_for_each_purpose(self):
