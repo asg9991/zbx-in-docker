@@ -83,7 +83,11 @@ DEFAULT_CONFIG = {
         "sender_binary": "zabbix_sender",
     },
     "ppp": {
-        # Tabla de sesiones PPP (MikoTik): 1.3.6.1.4.1.14988.1.1.2.1.1.2
+        # Tabla de COLAS de MikroTik (mtxrQueueSimpleTable). Se usa SOLO para
+        # el mapa de dedicados (nombre + indice de cola): los items de trafico
+        # apuntan a sus columnas. NO sirve para contar sesiones: las colas
+        # persisten cuando la sesion cae (701/702/703 con miles de colas y 0
+        # interfaces). El conteo sale de las interfaces `<pppoe-*>` del ifTable.
         "session_oid": "1.3.6.1.4.1.14988.1.1.2.1.1.2",
         # La whitelist de dedicados se LEE del template (fuente unica), por
         # psql read-only contra la base de Zabbix. Fallback opcional (regex)
@@ -350,15 +354,19 @@ def key_for(zabbix_config, purpose):
 # --------------------------------------------------------------------------
 # Flujo por host
 # --------------------------------------------------------------------------
-def count_ppp_sessions(rows):
-    """Cantidad de sesiones PPP activas = filas de la tabla de sesiones.
+PPP_SESSION_RE = re.compile(r"^<pppoe-", re.IGNORECASE)
 
-    La tabla 1.3.6.1.4.1.14988.1.1.2.1.1.2 tiene UNA fila por sesion PPP
-    (medido en los 5 CHR vivos: el 100 % de las filas son sesiones `<pppoe-`).
-    El conteo NO pasa por el valor del item (que se trunca a 64 KB en el
-    historial), asi que no arrastra el truncamiento.
+
+def count_ppp_interfaces(rows):
+    """Sesiones PPP activas = interfaces dinamicas `<pppoe-*>` del ifTable.
+
+    La tabla de colas (mtxrQueueSimpleTable, 1.3.6.1.4.1.14988.1.1.2.1) NO
+    sirve para contar sesiones: sus filas persisten cuando la sesion cae
+    (medido 2026-11-05: 702 con 3.118 colas y 0 interfaces pppoe). RouterOS
+    crea una interfaz dinamica `<pppoe-<usuario>>` por sesion activa y la
+    elimina al desconectarse; por eso el ifTable es la fuente de verdad.
     """
-    return len(rows)
+    return sum(1 for _index, name in rows if PPP_SESSION_RE.match(name))
 
 
 def filter_dedicated(rows, whitelist_regex):
@@ -493,6 +501,8 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
 
     ppp = None
     if ppp_cfg.get("session_oid"):
+        # El conteo sale del ifTable (interfaces dinamicas), no de las colas.
+        ppp = {"sessions": count_ppp_interfaces(rows), "dedicated": None, "rows": None}
         try:
             ppp_raw = ppp_walker(
                 host_config["ip"],
@@ -505,20 +515,15 @@ def collect_host(host_config, config, walker=run_snmpwalk, ppp_walker=run_snmpwa
             )
             ppp_rows = parse_walk_output(ppp_raw, ppp_cfg["session_oid"])
             if not ppp_rows:
-                # Un CHR con servicio PPPoE activo nunca tiene 0 sesiones: un
-                # walk vacio significa que el OID no esta disponible o que el
-                # agente no respondio. No publicar 0 evita pisar el ultimo
-                # valor bueno con un dato falso (visto en 703 el 2026-10-22).
-                raise RuntimeError("el walk de sesiones PPP devolvio 0 filas (OID no disponible o agente sin respuesta)")
+                # Walk de colas vacio: no se puede armar el mapa de dedicados,
+                # pero el conteo de sesiones ya salio del ifTable y se publica.
+                raise RuntimeError("el walk de la tabla de colas devolvio 0 filas")
             dedicated = filter_dedicated(ppp_rows, ppp_cfg.get("whitelist"))
             normalizaciones = ppp_cfg.get("name_normalizations") or {}
             for entry in dedicated:
                 entry["ppp_name"] = normalizaciones.get(entry["ppp_name"], entry["ppp_name"])
-            ppp = {
-                "sessions": count_ppp_sessions(ppp_rows),
-                "dedicated": dedicated,
-                "rows": ppp_rows,
-            }
+            ppp["dedicated"] = dedicated
+            ppp["rows"] = ppp_rows
         except Exception as exc:
             # el lado PPP no debe tumbar al lado VLAN
             print("[ppp] %s: fallo el walk de sesiones PPP: %s" % (host_config.get("zabbix_host"), exc))
@@ -667,22 +672,30 @@ def run(config, dry_run=False, only=None, walker=run_snmpwalk, ppp_walker=run_sn
         # 2) conteo de sesiones PPP + 3) mapa de dedicados
         if not hw_only and ppp:
             count_payload = str(ppp["sessions"])
-            dedicated_payload = build_payload(ppp["dedicated"])
-            print("[%s] %s: %d sesiones PPP, %d dedicadas (%s)" % (
-                stamp, name, ppp["sessions"], len(ppp["dedicated"]),
-                ", ".join("%s@%d" % (d["ppp_name"], d["index"]) for d in ppp["dedicated"]) or "ninguna"))
+            dedicadas = ppp.get("dedicated")
+            print("[%s] %s: %d sesiones PPP activas (%s)" % (
+                stamp, name, ppp["sessions"],
+                "mapa de dedicados ok" if dedicadas is not None else "sin mapa de dedicados"))
             ok, output = publish(zabbix_config, name, key_for(zabbix_config, "ppp_count"), count_payload)
             if not ok:
                 print("[%s] %s: ERROR publicando el conteo PPP -> %s" % (stamp, name, output))
                 failures += 1
             else:
                 print("[%s] %s: conteo PPP publicado (%s)" % (stamp, name, output))
-            ok, output = publish(zabbix_config, name, key_for(zabbix_config, "ppp_map"), dedicated_payload)
-            if not ok:
-                print("[%s] %s: ERROR publicando el mapa de dedicados -> %s" % (stamp, name, output))
-                failures += 1
+            if dedicadas is None:
+                print("[%s] %s: sin mapa de dedicados (fallo el walk de colas)" % (stamp, name))
             else:
-                print("[%s] %s: mapa de dedicados publicado (%s)" % (stamp, name, output))
+                dedicated_payload = build_payload(dedicadas)
+                ok, output = publish(zabbix_config, name, key_for(zabbix_config, "ppp_map"),
+                                     dedicated_payload)
+                if not ok:
+                    print("[%s] %s: ERROR publicando el mapa de dedicados -> %s" % (stamp, name, output))
+                    failures += 1
+                else:
+                    print("[%s] %s: mapa de dedicados publicado: %d (%s)" % (
+                        stamp, name, len(dedicadas),
+                        ", ".join("%s@%d" % (d["ppp_name"], d["index"]) for d in dedicadas) or "ninguna",
+                    ))
 
         # 3b) mapa de interfaces (para la LLD trapper de interfaces)
         #     En hw_only `rows` es 0 (no se camina la ifTable): este bloque

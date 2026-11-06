@@ -94,7 +94,7 @@ class TestVlanMapper(unittest.TestCase):
     def test_fixture_shape(self):
         rows = vlan_mapper.parse_walk_output(self.text)
         self.assertEqual(len(rows), 2190, "la fixture debe tener 2.190 filas de ifTable")
-        pppoe = [row for row in rows if row[1].startswith("pppoe-")]
+        pppoe = [row for row in rows if row[1].startswith("<pppoe-")]
         self.assertEqual(len(pppoe), 2159, "2.159 interfaces dinamicas PPPoE")
 
     def test_parser_indexes(self):
@@ -206,11 +206,35 @@ class TestVlanMapper(unittest.TestCase):
 
 
     # --- lado PPP: conteo de sesiones y mapa de dedicados -------------------
-    def test_count_ppp_sessions(self):
-        """El conteo es el numero de FILAS de la tabla de sesiones PPP."""
-        rows = vlan_mapper.parse_walk_output(self.ppp_text, "1.3.6.1.4.1.14988.1.1.2.1.1.2")
-        self.assertEqual(len(rows), 2079)
-        self.assertEqual(vlan_mapper.count_ppp_sessions(rows), 2079)
+    def test_count_ppp_interfaces_uses_the_iftable(self):
+        """El conteo sale de las interfaces dinamicas, no de la tabla de colas."""
+        rows = vlan_mapper.parse_walk_output(self.text)
+        self.assertEqual(vlan_mapper.count_ppp_interfaces(rows), 2159)
+        self.assertEqual(vlan_mapper.count_ppp_interfaces([]), 0)
+        self.assertEqual(
+            vlan_mapper.count_ppp_interfaces([(1, "PUBLICA"), (2, "Enlace-x")]), 0)
+
+    def test_count_ignores_queue_rows_without_sessions(self):
+        """Regresion 2026-11-05: 702 tenia 3.118 colas y 0 sesiones activas."""
+        published = {}
+
+        def spy(zabbix_config, host, key, payload):
+            published[key] = payload
+            return True, "sent: 1"
+
+        config = json.loads(json.dumps(self.config))
+        config["ppp"]["whitelist"] = r"^<pppoe-session-a>$"
+        ifdescr = 'iso.3.6.1.2.1.2.2.1.2.10 = STRING: "PUBLICA"'
+        original = vlan_mapper.publish
+        vlan_mapper.publish = spy
+        try:
+            code = vlan_mapper.run(config, walker=lambda *a, **k: ifdescr,
+                                   ppp_walker=fake_ppp_walker(self.ppp_text))
+        finally:
+            vlan_mapper.publish = original
+        self.assertEqual(code, 0)
+        self.assertEqual(published["mikrotik.ppp.active.count"], "0",
+                         "sin interfaces pppoe el conteo debe ser 0")
 
     def test_filter_dedicated_uses_the_whitelist(self):
         """Solo pasan las sesiones que matchean la whitelist del template."""
