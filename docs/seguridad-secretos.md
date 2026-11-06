@@ -36,6 +36,12 @@
 3. Evaluar de forma coordinada la limpieza del historial (por ejemplo con
    `git filter-repo`), avisando a quienes tengan clones existentes.
 
+## App password de correo (reportes)
+
+- La app password del media type Email se carga solo en Zabbix.
+- No se versiona ni se comparte por chat; rotarla si se expone.
+- Procedimiento de reportes: [`reportes-automaticos.md`](reportes-automaticos.md).
+
 ## Claves privadas TLS (privkey.pem)
 
 - Ubicación: `${DATA_DIR}/certs/privkey.pem` en cada host (fuera de git,

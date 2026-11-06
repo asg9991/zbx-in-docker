@@ -110,10 +110,18 @@ scripts/
 
 La documentación técnica se encuentra en el directorio `docs`.
 
-Actualmente:
-
-- `ROADMAP.md`
-- `unifi-external-check.md`
+- **Instalación y operación:** `instalacion.md`, `checklist-servicio.md`,
+  `recupero.md`, `migracion-checklist.md`
+- **Agentes:** `zabbix-agent-linux.md`, `zabbix-agent2-docker.md`
+- **Proxmox:** `proxmox-monitoreo.md`, `proxmox-monitoreo-tls.md`
+- **Red y servicios:** `unifi-external-check.md`
+- **Alertas y reportes:** `telegram-usuarios.md`, `telegram-es-i18n.md`,
+  `reportes-automaticos.md`
+- **TLS:** `tls-cloudflare-origin.md`, `tls-letsencrypt-direct.md`
+- **Zabbix UI/DB:** `dashboard-update.md`
+- **NOC Agent / MCP:** `mcp-spike-fase2.md`, `noc-agent/`
+- **Seguridad:** `seguridad-secretos.md`
+- **Roadmap:** `ROADMAP.md`
 
 ---
 
