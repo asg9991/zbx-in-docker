@@ -56,6 +56,31 @@ getfacl ./zabbix-mcp-config.toml | grep -E 'user:|mask'   # ACL + mask r--
 - **Nunca** remover esa ACL por "huérfana": el nombre con que se muestra es
   el del host, no el del contenedor.
 
+## Cómo se escapó (lección 2026-11-12)
+
+Un bug de config "de base" (permisos del toml) sobrevivió 8 días porque se
+juntaron cuatro mecanismos. Documentados para que no se repitan:
+
+1. **Fallo latente de arranque**: la config se lee una sola vez, al iniciar.
+   El proceso vivo no la relee: todo permiso o contenido cambiado después
+   del arranque es invisible hasta un recreate. "Up 8 días" no prueba nada
+   sobre la config actual.
+2. **Verificación en caliente**: los checks posteriores al cambio probaron el
+   proceso vivo (consultas OK) y no un ciclo de reinicio — con el archivo
+   ilegible, el smoke en caliente seguía pasando.
+3. **Juicio por nombre en vez de uid**: la ACL `user:dnsmasq` se clasificó
+   como "huérfana" mirando el nombre que muestra el host, no el uid (999),
+   que es el que resuelve dentro del contenedor (`zabbix-mcp`). Entre host y
+   contenedor el nombre miente; la identidad es el uid.
+4. **Sin checklist ejecutable**: no había procedimiento que dijera "tras
+   tocar archivos montados: recrear y verificar". Lo que nadie ejecuta, nadie
+   lo rompe a la vista.
+
+Prevención aplicada: §Permisos del toml (descubrir el uid, ACL obligatoria,
+nunca removerla), §5 (pre-alta verifica legibilidad por el uid del servicio)
+y `checklist-servicio.md` §10 (post-cambio de archivos montados = recreate +
+verificar).
+
 ## Endpoint de la API de Zabbix
 
 ```bash
@@ -161,6 +186,8 @@ Rotación (siempre en este orden):
 - [ ] recreate del contenedor
 - [ ] smoke test con el token nuevo → verde
 - [ ] (si rojo) rollback ejecutado y abortado
+- [ ] **rollback ejercitado — PENDIENTE**: no se ejecutó en el drill
+      2026-11-12 (no hubo rojo); ejercitarlo en la próxima rotación real
 - [ ] `token.delete` del token viejo
 - [ ] smoke test final → verde
 - [ ] inventario post: `token.get` confirma el estado esperado (el viejo ya no existe)
