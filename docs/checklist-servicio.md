@@ -43,6 +43,10 @@ curl -sk https://127.0.0.1/api_jsonrpc.php -H 'Content-Type: application/json-rp
 #    → stop+mask nativo, `docker compose up -d --force-recreate nginx`.
 #  - "host not found in upstream zabbix-web" en loop = container con red
 #    corrupta → NO sirve `docker start`; recrear con compose.
+#  - "cannot load certificate /etc/nginx/certs/fullchain.pem" = certs
+#    ausentes en ${DATA_DIR}/certs (el contenedor viejo lo esconde hasta el
+#    primer recreate) → par self-signed (lab) o provisionar (prod, tls-*.md);
+#    layout: fullchain 644, privkey 600 (seguridad-secretos.md).
 ```
 
 ## 4. Datos fluyendo (no solo procesos)
