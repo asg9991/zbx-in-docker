@@ -49,6 +49,27 @@ TLS: el nginx termina HTTPS con el template `docker/nginx/default.conf.template`
 (`SERVER_NAME` + cert en `${DATA_DIR}/certs`). Procedimientos:
 `docs/tls-letsencrypt-direct.md` (default) o `docs/tls-cloudflare-origin.md`.
 
+### Elección de TLS por sitio (definir con el cliente)
+
+Antes de provisionar certs, acordar con el cliente y **registrar en su repo
+privado** (`client/` — este doc es genérico y no guarda valores por sitio):
+
+1. **Dominio y DNS**: FQDN exacto (= `SERVER_NAME`), de quién es el dominio,
+   quién puede editar el registro A/AAAA hacia el host, y si el DNS ya está
+   detrás de un proxy (Cloudflare u otro).
+2. **Camino**: proxy de Cloudflare activo → Origin
+   (`tls-cloudflare-origin.md`); DNS directo al host con 80/443 públicos →
+   Let's Encrypt directo (`tls-letsencrypt-direct.md`, default). Registrar
+   cuál se eligió y por qué.
+3. **Renovación y responsables**: quién recibe alertas de vencimiento, quién
+   corre `certbot renew --dry-run` tras cambios, y qué se hace si la
+   renovación falla (el sitio queda sin TLS). Con LE: timer + deploy-hook
+   obligatorios; con Origin: rotación manual (~15 años).
+4. **Accesos**: cuenta Cloudflare (si aplica), email de registro LE, y quién
+   tiene sudo en el host.
+5. **Lab vs cliente**: en lab vale un cert self-signed (sin decisión
+   externa); en cliente, self-signed **nunca** para usuarios reales.
+
 ### Dónde vive cada contraseña
 
 1. **Único punto de verdad:** `docker/.env` (local al host, fuera de git).

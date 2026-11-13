@@ -2,6 +2,7 @@
 
 Usar cuando el sitio va detrás del proxy de Cloudflare (nube naranja) y se
 quiere cifrado punta a punta sin exponer el origen ni correr ACME en él.
+Qué definir con el cliente antes: `instalacion.md` §Elección de TLS por sitio.
 
 ## Cuándo usarlo (vs. Let's Encrypt directo)
 
