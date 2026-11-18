@@ -2,9 +2,10 @@
 
 Scope: Zabbix API `dashboard.update` on the Global view dashboard. Documentation only; no Zabbix changes are made by this file.
 
-> Antes de tocar widgets: leer `docs/graficos-site-a.md`. Explica el modelo
-> `item → graphs_items → graphs → widget_field → widget`, el patrón de cada
-> gráfico, la receta completa y las minas (cascadas, `type=6`, tabla `ids`).
+> Las particularidades de cada cliente (mapa de ifIndex, patrones de widgets,
+> inventario de gráficos, minas propias del sitio) viven en su repo privado, en
+> `client/docs/graficos-<cliente>.md`. Este documento cubre solo lo genérico del
+> ritual; no reintroducir datos de cliente acá (ver `docs/recupero.md`).
 > Si el objetivo es reparar un gráfico que "dejó de graficar", casi siempre es
 > `widget_field.graphid.0` y NO hace falta `dashboard.update`.
 
@@ -104,7 +105,8 @@ Consequences:
 
 ### 4.1 Why widgets end up reference-only
 
-Three cascades, all verified in this project (`docs/graficos-site-a.md`, sección 5):
+Three cascades, verified in this project (documented per client in
+`client/docs/graficos-<cliente>.md` of each private repo):
 
 | Causa | Efecto |
 |---|---|

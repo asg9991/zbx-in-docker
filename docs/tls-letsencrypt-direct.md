@@ -2,7 +2,8 @@
 
 Certificado público emitido por Let's Encrypt y terminado en el nginx del
 compose. Es el procedimiento default para un sitio con DNS público que
-apunta al host (ej.: `SERVER_NAME=zabbix.example.com`).
+apunta al host (ej.: `SERVER_NAME=zabbix.example.com`). Qué definir con el
+cliente antes: `instalacion.md` §Elección de TLS por sitio.
 
 ## Requisitos
 

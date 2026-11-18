@@ -49,6 +49,27 @@ TLS: el nginx termina HTTPS con el template `docker/nginx/default.conf.template`
 (`SERVER_NAME` + cert en `${DATA_DIR}/certs`). Procedimientos:
 `docs/tls-letsencrypt-direct.md` (default) o `docs/tls-cloudflare-origin.md`.
 
+### Elección de TLS por sitio (definir con el cliente)
+
+Antes de provisionar certs, acordar con el cliente y **registrar en su repo
+privado** (`client/` — este doc es genérico y no guarda valores por sitio):
+
+1. **Dominio y DNS**: FQDN exacto (= `SERVER_NAME`), de quién es el dominio,
+   quién puede editar el registro A/AAAA hacia el host, y si el DNS ya está
+   detrás de un proxy (Cloudflare u otro).
+2. **Camino**: proxy de Cloudflare activo → Origin
+   (`tls-cloudflare-origin.md`); DNS directo al host con 80/443 públicos →
+   Let's Encrypt directo (`tls-letsencrypt-direct.md`, default). Registrar
+   cuál se eligió y por qué.
+3. **Renovación y responsables**: quién recibe alertas de vencimiento, quién
+   corre `certbot renew --dry-run` tras cambios, y qué se hace si la
+   renovación falla (el sitio queda sin TLS). Con LE: timer + deploy-hook
+   obligatorios; con Origin: rotación manual (~15 años).
+4. **Accesos**: cuenta Cloudflare (si aplica), email de registro LE, y quién
+   tiene sudo en el host.
+5. **Lab vs cliente**: en lab vale un cert self-signed (sin decisión
+   externa); en cliente, self-signed **nunca** para usuarios reales.
+
 ### Dónde vive cada contraseña
 
 1. **Único punto de verdad:** `docker/.env` (local al host, fuera de git).
@@ -118,10 +139,11 @@ El build extiende la imagen oficial de Zabbix Server con Python 3 y
 
 ```bash
 docker compose ps                      # todos Up, postgres healthy
-curl -s http://127.0.0.1/api_jsonrpc.php \
+curl -sk https://127.0.0.1/api_jsonrpc.php \
   -H 'Content-Type: application/json-rpc' \
   -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}'
 # → {"jsonrpc":"2.0","result":"7.4.16","id":1}
+# OJO: el template TLS redirige http→https (301); el smoke es por https.
 ```
 
 Frontend: `https://<SERVER_NAME>` (o `http://localhost` en lab sin TLS) — usuario por defecto `Admin` / `zabbix`.
@@ -222,11 +244,69 @@ subredes del lab del secuestro de rutas).
 
 ## Actualizar la versión de Zabbix
 
+Al arrancar, Zabbix Server **migra el esquema de la base automáticamente**
+a la versión nueva. El downgrade NO está soportado: sin dump previo verificado
+no hay rollback. Secuencia completa — no saltarse el paso 0.
+
+### 0. Backup pre-upgrade (obligatorio — el punto de retorno)
+
+```bash
+cd docker
+cp .env .env.bak.$(date +%Y%m%d_%H%M%S)
+sudo docker exec zabbix-postgres pg_dump -U zabbix zabbix \
+  | gzip > "${DATA_DIR}/../pg-pre-upgrade-$(date +%Y%m%d_%H%M%S).sql.gz"
+gzip -t "${DATA_DIR}"/../pg-pre-upgrade-*.sql.gz && echo DUMP-OK
+# guardar también los tags de imagen actuales (el retorno):
+grep -n 'image:\|FROM ' docker-compose.yml Dockerfile.zabbix-server > tags-pre-upgrade.txt
+```
+
+- El dump se verifica con `gzip -t` y, para rollback de verdad, restaurándolo
+  en un postgres descartable (ver `recupero.md` §3).
+- Mismo criterio que `checklist-servicio.md` §5 ("sin dump no hay rollback").
+
+### 1. Upgrade
+
+> **Estado del procedure**: los mecanismos (backup, restore, build, recreate,
+> verificación) están **ejercitados** en lab (2026-11-13, dry-run a versión
+> idéntica). Queda **PENDIENTE** ejercitar un bump real de versión con
+> migración de esquema entre versiones — hacerlo en la primera actualización
+> de patch real.
+
 1. Bump de tags en tres lugares:
    - `docker/docker-compose.yml` → imágenes de `zabbix-web` y `zabbix-agent`
-     (`alpine-7.4.X`)
+     (`alpine-7.4.X`) y, si aplica, la imagen del hub MCP (`zabbix-mcp`)
    - `docker/Dockerfile.zabbix-server` → `FROM` base (`alpine-7.4.X`)
-2. `docker compose up -d --build`
-3. Al arrancar, Zabbix Server **migra el esquema de la base automáticamente**
-   a la versión nueva. El downgrade NO está soportado: hacer backup de
-   `${DATA_DIR}/postgres` antes de saltar de versión.
+2. `docker compose up -d --build` (con `--profile mcp` si el hub está activo)
+3. La migración de esquema ocurre sola al arrancar.
+
+### 2. Verificación post-upgrade
+
+- `checklist-servicio.md` §1–§10 completo (stack, web real, datos fluyendo,
+  disco, sin restarts en loop).
+- `apiinfo.version` (§Paso 4 de esta guía) debe devolver la versión nueva.
+- Migración sin errores: `sudo docker logs zabbix-server 2>&1 | grep -iE
+  'database.*version|error'` — la línea `current database version (...)` es
+  **normal** (se imprime al arrancar); lo que no debe aparecer son errores
+  de esquema.
+- Hub MCP (si está activo): smoke de `operacion-hub.md` §Diagnóstico.
+
+### 3. Rollback (si la verificación falla)
+
+El downgrade de binarios no está soportado; el rollback restaura el estado:
+
+1. Volver los tags al valor de `tags-pre-upgrade.txt` (revert del compose y
+   del Dockerfile).
+2. `docker compose down`
+3. Restaurar el dump **sobre una base vacía** (el restore de un dump plain no
+   limpia el esquema existente): borrar/recibir el volumen de postgres limpio
+   o `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` antes de
+   `gunzip -c pg-pre-upgrade-*.sql.gz | docker exec -i zabbix-postgres psql
+   -U zabbix zabbix`. Verificado en lab: restore completo sin errores (207
+   tablas, datos intactos). Reconstrucción desde cero: `recupero.md` §1.
+4. `docker compose up -d` y re-verificar (§2 de esta sección).
+
+Si la base quedó irrecuperable: reconstrucción completa en `recupero.md` §1.
+
+> **Nota — upgrade del agente noc-agent**: se actualiza por `git pull` +
+> reinicio de su servicio (no migra esquema). Su backup de estado corre con
+> `scripts/backup-estado.sh` (repo noc-agent, runbook §12).

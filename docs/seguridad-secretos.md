@@ -36,6 +36,19 @@
 3. Evaluar de forma coordinada la limpieza del historial (por ejemplo con
    `git filter-repo`), avisando a quienes tengan clones existentes.
 
+## App password de correo (reportes)
+
+- La app password del media type Email se carga solo en Zabbix.
+- No se versiona ni se comparte por chat; rotarla si se expone.
+- Procedimiento de reportes: [`reportes-automaticos.md`](reportes-automaticos.md).
+
+## Token de Zabbix del hub MCP (`api_token`)
+
+- Vive en `docker/zabbix-mcp-config.toml` (`600`, fuera de git).
+- Alta, baja, rotación y diagnóstico: [`operacion-hub.md`](operacion-hub.md).
+- La rotación sigue el orden sin ventana de ciego de ese runbook: el token
+  viejo se revoca solo después de validar el nuevo.
+
 ## Claves privadas TLS (privkey.pem)
 
 - Ubicación: `${DATA_DIR}/certs/privkey.pem` en cada host (fuera de git,

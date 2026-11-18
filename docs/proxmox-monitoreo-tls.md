@@ -1,5 +1,7 @@
 # Reactivar el monitoreo Proxmox en Zabbix (host 10817)
 
+Guía base de integración Proxmox + Agent 2: [`proxmox-monitoreo.md`](proxmox-monitoreo.md).
+
 > **Estado**: pendiente de verificación. Los técnicos están haciendo migraciones
 > en Proxmox; aplicar recién cuando el cluster esté quieto.
 > **Origen**: task #64 del diario (proyecto site-a), 2026-10-21.

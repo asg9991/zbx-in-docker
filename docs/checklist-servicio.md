@@ -43,6 +43,10 @@ curl -sk https://127.0.0.1/api_jsonrpc.php -H 'Content-Type: application/json-rp
 #    → stop+mask nativo, `docker compose up -d --force-recreate nginx`.
 #  - "host not found in upstream zabbix-web" en loop = container con red
 #    corrupta → NO sirve `docker start`; recrear con compose.
+#  - "cannot load certificate /etc/nginx/certs/fullchain.pem" = certs
+#    ausentes en ${DATA_DIR}/certs (el contenedor viejo lo esconde hasta el
+#    primer recreate) → par self-signed (lab) o provisionar (prod, tls-*.md);
+#    layout: fullchain 644, privkey 600 (seguridad-secretos.md).
 ```
 
 ## 4. Datos fluyendo (no solo procesos)
@@ -125,4 +129,23 @@ select hostid from hosts where name_upper='' or name_upper is null;
 
 En esta instancia la API no rellena `name_upper` (columna que usa el
 buscador) y el host existe pero no filtra. Solo afecta altas nuevas.
+
+## 10. Config/permisos de archivos montados (post-cambio)
+
+La config montada se lee UNA sola vez, al arranque: tocarla en caliente no
+afecta al proceso vivo, y su fallo solo aparece en el próximo recreate.
+"Up 8 días" no prueba la config actual — solo un recreate la prueba.
+
+```bash
+# tras cambiar contenido o permisos de un archivo montado (toml, .env, certs):
+docker compose -p zbx-in-docker -f docker/docker-compose.yml --profile mcp up -d --force-recreate <servicio>
+docker ps --filter name=<servicio> --format '{{.Names}}|{{.Status}}'   # Up, no Restarting
+docker logs <servicio> --tail 5        # sin "Permission denied" ni config errors
+```
+
+- El servicio corre con su propio uid: el archivo debe ser legible por ese
+  uid (ACL o grupo), no solo `600` del dueño. Cómo descubrirlo y fijarlo:
+  [`operacion-hub.md`](operacion-hub.md) §Permisos del toml.
+- Lección completa (por qué esto se escapó en 2026-11-12):
+  [`operacion-hub.md`](operacion-hub.md) §Cómo se escapó.
 

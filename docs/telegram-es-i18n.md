@@ -3,6 +3,8 @@
 Objetivo: que las alarmas Zabbix lleguen en español accesible para técnicos
 hispanohablantes, sin tener que aprender inglés. Aplica a Telegram, mail, UI y API.
 
+Alta de usuarios y grupos en Telegram: [`telegram-usuarios.md`](telegram-usuarios.md).
+
 ## Estrategia en dos capas (decidida 2026-10-13)
 
 1. **Red de contención en el webhook Telegram** (táctico, barato, reversible):
