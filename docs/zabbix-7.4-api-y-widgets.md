@@ -16,6 +16,7 @@ ritual de `dashboard.update` en `docs/dashboard-update.md` y el checklist de ser
 | Grafos descubiertos por LLD | no se pueden modificar por API: `Cannot update a discovered graph`. Para cambiar color o nombre, crear un grafo manual sobre los mismos items y repuntar el widget |
 | `dashboard.get` | no acepta `selectWidgets`; con `selectPages: "extend"` los widgets vienen anidados en cada página |
 | `widget_field.type` | `0` = entero, `1` = string, `6` = graphid. Un campo entero con `type: 0` exige `value` numérico |
+| Macros de host | `usermacro.create` exige `description` (columna NOT NULL). Sin ella falla con un error SQL genérico, no con un mensaje de validación |
 
 ## Widget `svggraph`
 
