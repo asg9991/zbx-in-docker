@@ -140,3 +140,9 @@ A partial `dashboard.update` deleted 12 pages of the Global view. Recovery requi
 1. Re-PUT the pristine GET JSON saved in Step 1 (full payload, single `dashboard.update`).
 2. If the API path is unusable, restore the `dashboard*` / `widget*` tables from the `pg_dump` backup, or re-import the `configuration.export` file.
 3. Re-run the Step 7 verification and confirm sister pages are intact.
+
+## 7. Referencia
+
+Campos de widget (`widget_field`), receta de `svggraph` y particularidades de la API 7.4
+(métodos en singular, `gitems`, `yaxismin`/`yaxismax`, grafos descubiertos por LLD) están
+en `docs/zabbix-7.4-api-y-widgets.md`. Este documento es solo el ritual.
