@@ -16,7 +16,54 @@ ritual de `dashboard.update` en `docs/dashboard-update.md` y el checklist de ser
 | Grafos descubiertos por LLD | no se pueden modificar por API: `Cannot update a discovered graph`. Para cambiar color o nombre, crear un grafo manual sobre los mismos items y repuntar el widget |
 | `dashboard.get` | no acepta `selectWidgets`; con `selectPages: "extend"` los widgets vienen anidados en cada página |
 | `widget_field.type` | `0` = entero, `1` = string, `6` = graphid. Un campo entero con `type: 0` exige `value` numérico |
-| Macros de host | `usermacro.create` exige `description` (columna NOT NULL). Sin ella falla con un error SQL genérico, no con un mensaje de validación |
+| Macros de host | `usermacro.create` / `usermacro.update` puede fallar con un error SQL genérico si `hostmacro.description` es `NOT NULL` sin default: la API 7.4.16 no envía ese campo. Ver "Macros de host en DB migradas" más abajo |
+
+## Macros de host en DB migradas
+
+En una base migrada desde un esquema anterior, `hostmacro.description` puede quedar
+`NOT NULL` **sin default**. La API 7.4.16 no envía `description` al crear la macro, así
+que `usermacro.create` (y a veces `usermacro.update`) falla con un error SQL genérico, no
+con un mensaje de validación:
+
+```text
+Application error: SQL statement execution has failed
+"INSERT INTO hostmacro (hostmacroid,hostid,macro,value,type) VALUES (...)"
+```
+
+En los logs del frontend aparece la causa real:
+
+```text
+ERROR: null value in column "description" of relation "hostmacro" violates not-null constraint
+```
+
+Verificar el esquema antes de asumir:
+
+```sql
+\d hostmacro
+```
+
+Workaround verificado (sin tocar el esquema):
+
+1. Insertar por SQL con `description = ''` y `automatic = 0`.
+2. Usar `hostmacroid = max(hostmacroid) + 1`. Si `ids` tiene una fila para
+   `table_name = 'hostmacro'`, actualizar también su `nextid`.
+3. Recargar la configuración: `zabbix_server -R config_cache_reload`.
+4. Confirmar que la macro quedó en `hostmacro` y que el LLD la aplica en el próximo ciclo.
+
+```sql
+INSERT INTO hostmacro (hostmacroid, hostid, macro, value, description, type, automatic)
+SELECT COALESCE(MAX(hostmacroid),0)+1, <hostid>, '<macro>', '<value>', '', 0, 0
+FROM hostmacro;
+```
+
+Arreglo permanente recomendado (evaluar en ventana y con backup):
+
+```sql
+ALTER TABLE hostmacro ALTER COLUMN description SET DEFAULT '';
+```
+
+Hasta corregir el esquema, no usar `usermacro.create` para altas: falla aunque el payload
+parezca correcto.
 
 ## Widget `svggraph`
 
