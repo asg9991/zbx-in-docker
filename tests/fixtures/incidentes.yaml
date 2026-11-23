@@ -1,0 +1,78 @@
+# Banco de incidentes reales (N6).
+#
+# Nombres tal como aparecen en los sitios (anonimizados: sin hostnames de
+# cliente ni IPs). `esperado` es la clase del catálogo que debería asignarse.
+# Se usa para medir la precisión del clasificador antes de habilitar acciones.
+
+umbral: 0.80
+
+casos:
+  # --- enlace ---
+  - {id: e01, nombre: "Link caido: ap-sim-04", esperado: enlace}
+  - {id: e02, nombre: "Enlace caído: gigabitEthernet 1/0/16", esperado: enlace}
+  - {id: e03, nombre: "Interface Down", esperado: enlace}
+  - {id: e04, nombre: "Network Generic Device: Interface Port 16(16): Link down", esperado: enlace}
+  - {id: e05, nombre: "Huawei VRP: Interface 40GE0/1/51(): Link down", esperado: enlace}
+  - {id: e06, nombre: "MikroTik: Interface Base 23 (Cambium) ether3(): Link down", esperado: enlace}
+  - {id: e07, nombre: "Sin respuesta a ping", esperado: enlace}
+  - {id: e08, nombre: "MikroTik: Unavailable by ICMP ping", esperado: enlace}
+  - {id: e09, nombre: "Ethernet has changed to lower speed than it was before", esperado: enlace}
+
+  # --- latencia / pérdida ---
+  - {id: l01, nombre: "ICMP Ping: High ICMP ping response time", esperado: latencia}
+  - {id: l02, nombre: "Perdida 35% en router-sim-02", esperado: latencia}
+  - {id: l03, nombre: "Latencia 450ms en fw-sim-08", esperado: latencia}
+  - {id: l04, nombre: "Latencia alta en equipo simulado (>150ms)", esperado: latencia}
+  - {id: l05, nombre: "Perdida de paquetes en equipo simulado (>20%)", esperado: latencia}
+
+  # --- wifi ---
+  - {id: w01, nombre: "Tasa de errores alta: wifi1 ()", esperado: wifi}
+  - {id: w02, nombre: "Tasa de errores alta: ath2 ()", esperado: wifi}
+  - {id: w03, nombre: "WLAN-4-DISASSOC deauth reason=timeout", esperado: wifi}
+
+  # --- fibra ---
+  - {id: f01, nombre: "PON-2-LOS: perdida de senal en PON 0/1/2", esperado: fibra}
+  - {id: f02, nombre: "ONT-4-DYINGGASP: ONT sin respuesta", esperado: fibra}
+
+  # --- disco ---
+  - {id: d01, nombre: "Disco casi lleno en equipo simulado (>85%)", esperado: disco}
+  - {id: d02, nombre: "Linux: sdb: Disk read/write request responses are too high", esperado: disco}
+
+  # --- memoria ---
+  - {id: m01, nombre: "High swap space usage (less than 50% free)", esperado: memoria}
+  - {id: m02, nombre: "Memoria alta en equipo simulado (>90%)", esperado: memoria}
+  - {id: m03, nombre: "Proxmox VE: VM [nodo1/Radius (qemu/4401)] high memory usage (over 90% use)", esperado: memoria}
+
+  # --- cpu ---
+  - {id: c01, nombre: "CPU alta en equipo simulado (>90%)", esperado: cpu}
+
+  # --- servicios ---
+  - {id: s01, nombre: "Servicio detenido: GoogleUpdaterInternalService159.0.8140.0", esperado: servicios}
+
+  # --- ruteo ---
+  - {id: r01, nombre: "OSPF-5-ADJCHG: neighbor 10.0.0.2 down", esperado: ruteo}
+
+  # --- tráfico ---
+  - {id: t01, nombre: "VLAN vlan320: No traffic sent for 5m", esperado: trafico}
+
+  # --- seguridad ---
+  - {id: g01, nombre: "FTG-AUDIT: admin login from mgmt", esperado: seguridad}
+  - {id: g02, nombre: "FTG-DENY: policy=wan-in action=deny", esperado: seguridad}
+
+  # --- energía ---
+  - {id: p01, nombre: "UPS-2-ONBATT: equipo en bateria", esperado: energia}
+
+# Conjunto de RETENCIÓN: no se usa para ajustar patrones.
+# Sirve para medir de verdad. Si un caso falla acá, se documenta como hueco;
+# no se "arregla" el patrón mirando este set (si no, deja de medir).
+holdout:
+  - {id: h01, nombre: "Proxmox VE: VM [nodo2/web-nueva (qemu/101)] high memory usage (over 90% use)", esperado: memoria}
+  - {id: h02, nombre: "VLAN vlan155: No traffic sent for 5m", esperado: trafico}
+  - {id: h03, nombre: "Docker: Container zabbix-web is not running", esperado: servicios}
+  - {id: h04, nombre: "BGP neighbor 10.0.0.1 down", esperado: ruteo}
+  - {id: h05, nombre: "UPS: battery low", esperado: energia}
+  - {id: h06, nombre: "Proxmox VE: node physical disk I/O wait is high", esperado: disco}
+  - {id: h07, nombre: "Acronis backup job failed", esperado: desconocido}
+  - {id: h08, nombre: "Interface Gi1/0/4: high error rate", esperado: enlace}
+  - {id: h09, nombre: "ONT-7-OFFLINE: ONT went offline", esperado: fibra}
+  - {id: h10, nombre: "ICMP ping loss 40%", esperado: latencia}

@@ -1,0 +1,225 @@
+# Catálogo de clases de incidente (D9) y reglas por clase (D10).
+#
+# Es el puente entre la alarma de Zabbix y el log que la explica.
+# Lo usan: el digest (scripts/digest.py), el dashboard de servicios
+# (scripts/gen_servicios.py) y la evaluación (scripts/evaluar_clasificador.py).
+#
+# patrones_zabbix: fragmentos del nombre del trigger, en minúscula. Se buscan
+#   por substring, respetando el ORDEN de esta lista: las clases específicas
+#   van antes que las genéricas (si no, "sin respuesta" de fibra caería en
+#   enlace).
+# logql: consulta Loki acotada al equipo (`host="$HOST"`).
+# accion: qué sugeriría el técnico. Texto para el humano, no un comando.
+
+version: 1
+
+# Reglas por defecto: cómo cada clase afecta un servicio.
+#   critico:   severidad mínima de Zabbix para marcar el servicio en rojo
+#   degradado: severidad mínima para naranja
+# Calibradas con los incidentes reales de los sitios (auditoría 2026-11 y
+# banco de 31 casos): caída de enlace y fibra son críticas; latencia/pérdida
+# degrada; disco lleno degrada antes de romper; OOM y ruteo escalan rápido.
+reglas_por_clase:
+  enlace:    {critico: 3, degradado: 2}
+  fibra:     {critico: 2, degradado: 2}
+  trafico:   {critico: 5, degradado: 3}
+  wifi:      {critico: 4, degradado: 2}
+  disco:     {critico: 5, degradado: 3}
+  memoria:   {critico: 4, degradado: 3}
+  ruteo:     {critico: 3, degradado: 2}
+  servicios: {critico: 4, degradado: 3}
+  energia:   {critico: 3, degradado: 2}
+  seguridad: {critico: 5, degradado: 4}
+  cpu:       {critico: 5, degradado: 4}
+  latencia:  {critico: 4, degradado: 2}
+
+# Regla para problemas sin clase conocida (`desconocido`).
+# Un problema de severidad Alta o superior que no matchea ninguna clase NUNCA
+# puede dejar un servicio en verde: es el hueco que dejaba la vista de cliente
+# con un Desastre activo y el semáforo en OK.
+# `degradado` fuera de rango a propósito: un aviso desconocido no mueve el
+# semáforo (control de ruido). Si una clase nueva aparece, se agrega al
+# catálogo; no se baja este umbral.
+regla_desconocido: {critico: 4, degradado: 6}
+
+# Mapeo automático item -> clase. Es lo que permite evaluar sin que un humano
+# etiquete: la clave del item es estructura, no opinión.
+# Se busca por prefijo (el primero que matchea gana). Orden: lo específico
+# antes que lo genérico.
+mapeo_items:
+  lab.link.status: enlace
+  lab.net.packet.loss.pct: latencia
+  lab.net.latency.ms: latencia
+  lab.net.if.in: trafico
+  lab.net.if.out: trafico
+  lab.disk.used.pct: disco
+  lab.mem.util: memoria
+  lab.cpu.util: cpu
+  icmppingloss: latencia
+  icmppingsec: latencia
+  icmpping: enlace
+  net.if.status: enlace
+  net.if.in: trafico
+  net.if.out: trafico
+  net.if.errors: enlace
+  vfs.fs.: disco
+  vm.memory.: memoria
+  system.swap.: memoria
+  system.cpu.: cpu
+  systemd.unit: servicios
+  service.info: servicios
+  net.tcp.service: servicios
+  sensor.ups: energia
+  ups.: energia
+  ospf.: ruteo
+  bgp.: ruteo
+  web.test: servicios
+
+clases:
+  - id: enlace
+    nombre: Enlace caído o inestable
+    patrones_zabbix:
+      - "link caido"
+      - "link down"
+      - "interface down"
+      - "unavailable"
+      - "enlace caido"
+      - "enlace caído"
+      - "sin respuesta a ping"
+      - "lower speed"
+    logql: '{job="syslog", host="$HOST"} |~ "LINK-[0-9]-DOWN|LINK-[0-9]-UP|Enlace caido"'
+    accion: "Revisar energía del equipo y el siguiente salto; comparar UP/DOWN en el mismo minuto."
+    evidencia: "secuencia de LINK DOWN/UP con la interfaz"
+
+  # Antes que latencia: "PON-2-LOS: perdida de senal" es fibra, no latencia.
+  - id: fibra
+    nombre: Fibra / ONU sin señal
+    patrones_zabbix:
+      - "ont-"
+      - "ont "
+      - "pon-"
+      - "pon "
+      - "dyinggasp"
+      - "perdida de senal"
+      - "pérdida de señal"
+      - "sin senal"
+      - "sin señal"
+      - "los:"
+    logql: '{job="syslog", host="$HOST"} |~ "PON-2-LOS|ONU-4-LOS|DYINGGASP"'
+    accion: "Revisar señal óptica y energía de la ONU; si es masiva, sospechar del PON."
+    evidencia: "LOS o dying-gasp con hora"
+
+  - id: trafico
+    nombre: Sin tráfico en interfaz o VLAN
+    patrones_zabbix:
+      - "no traffic"
+      - "sin trafico"
+      - "sin tráfico"
+      - "no data sent"
+    logql: '{job="syslog", host="$HOST"} |~ "LINK|VLAN"'
+    accion: "Verificar si el puerto está up y si el cliente dejó de usar el servicio."
+    evidencia: "ausencia de tráfico sostenida"
+
+  - id: wifi
+    nombre: WiFi con errores o clientes cayéndose
+    patrones_zabbix:
+      - "tasa de errores"
+      - "wlan"
+      - "clientes"
+      - "deauth"
+    logql: '{job="syslog", host="$HOST"} |~ "WLAN-4-DISASSOC|WLAN-3-ROGUE"'
+    accion: "Ver deauths y posible rogue AP; revisar canal y potencia del AP."
+    evidencia: "deauths por timeout o rogue detectado"
+
+  # "space" se sacó a propósito: "High swap space usage" caía como disco.
+  - id: disco
+    nombre: Disco lleno o lento
+    patrones_zabbix:
+      - "disco"
+      - "disk"
+      - "filesystem"
+    logql: '{job="syslog", host="$HOST"} |~ "disk-4-SPACE|Disco"'
+    accion: "Identificar el volumen y qué crece; aplicar retención o limpieza."
+    evidencia: "porcentaje y punto de montaje"
+
+  - id: memoria
+    nombre: Memoria alta u OOM
+    patrones_zabbix:
+      - "memoria"
+      - "memory"
+      - "swap"
+      - "oom"
+    logql: '{job="syslog", host="$HOST"} |~ "kernel-3-OOM|Out of memory"'
+    accion: "Si hay OOM, identificar el proceso; si no, revisar crecimiento y swap."
+    evidencia: "proceso matado por OOM"
+
+  - id: ruteo
+    nombre: Vecino de ruteo caído
+    patrones_zabbix:
+      - "ospf"
+      - "bgp"
+      - "neighbor"
+      - "adyacencia"
+    logql: '{job="syslog", host="$HOST"} |~ "OSPF-5-ADJCHG|BGP-5-ADJCHANGE"'
+    accion: "Revisar el enlace y el equipo vecino; confirmar si hubo mantenimiento."
+    evidencia: "cambio de adyacencia con vecino"
+
+  - id: servicios
+    nombre: Servicio detenido
+    patrones_zabbix:
+      - "servicio detenido"
+      - "service"
+      - "not running"
+    logql: '{job="syslog", host="$HOST"} |~ "systemd-1-STARTED|systemd-1-STOPPED|systemd-3-FAILED"'
+    accion: "Ver si reinició solo; si es un servicio de terceros, evaluar si debe monitorearse."
+    evidencia: "arranque o falla del servicio"
+
+  - id: energia
+    nombre: Problema de energía / UPS
+    patrones_zabbix:
+      - "ups"
+      - "bateria"
+      - "energia"
+      - "poe"
+    logql: '{job="syslog", host="$HOST"} |~ "UPS-2-ONBATT|UPS-5-ONLINE"'
+    accion: "Confirmar corte y autonomía restante; avisar al cliente si es prolongado."
+    evidencia: "paso a batería y retorno a línea"
+
+  - id: seguridad
+    nombre: Acceso o bloqueo relevante
+    patrones_zabbix:
+      - "login"
+      - "deny"
+      - "ips"
+      - "auth"
+    logql: '{job="syslog", host="$HOST"} |~ "FTG-AUDIT|FTG-DENY|FTG-ALERT"'
+    accion: "Verificar origen y legitimidad; si es un deny masivo, revisar regla o ataque."
+    evidencia: "login, deny o firma IPS"
+
+  - id: cpu
+    nombre: CPU alta
+    patrones_zabbix:
+      - "cpu"
+    logql: '{job="syslog", host="$HOST"} |~ "systemd|kernel"'
+    accion: "Confirmar si es sostenida; buscar el proceso y si coincide con backup o indexación."
+    evidencia: "eventos del sistema en la misma ventana"
+
+  # Genérica: va después de fibra para no robarle "perdida de senal".
+  - id: latencia
+    nombre: Latencia o pérdida alta
+    patrones_zabbix:
+      - "latencia"
+      - "ping response time"
+      - "perdida"
+      - "packet loss"
+      - "loss"
+    logql: '{job="syslog", host="$HOST"} |~ "OSPF-5-ADJCHG|LINK-[0-9]-DOWN"'
+    accion: "Buscar flapping de ruta o enlace en la misma ventana; si no hay log, es congestión."
+    evidencia: "cambios de adyacencia o caídas de enlace"
+
+  - id: desconocido
+    nombre: Sin clase conocida
+    patrones_zabbix: []
+    logql: '{job="syslog", host="$HOST"}'
+    accion: "Sin patrón conocido: mostrar los logs del equipo en la ventana del evento."
+    evidencia: "logs crudos del equipo"

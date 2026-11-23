@@ -1,0 +1,37 @@
+# Catálogo de servicios críticos por sitio (D10).
+#
+# NO se versiona el archivo real en este repo: vive en el repo privado del
+# cliente. Este es el esquema de ejemplo.
+#
+# Para qué sirve:
+#   - el dashboard de servicio muestra "Internet: OK / degradado"
+#   - el agente prioriza: un problema en un servicio crítico no es igual a uno
+#     en un equipo de laboratorio
+
+site: ejemplo
+actualizado: 2026-11-22
+
+servicios:
+  - nombre: Internet
+    criticidad: alta          # alta | media | baja
+    horario: 24x7
+    hosts: [RTR-WAN]
+    enlaces: ["GigabitEthernet0/1"]
+    depende_de: []
+
+  - nombre: Telefonía
+    criticidad: media
+    horario: "08:00-18:00"
+    hosts: [PBX]
+    depende_de: [Internet]
+
+  - nombre: Facturación
+    criticidad: alta
+    horario: "07:00-20:00"
+    hosts: [SRV-FACT]
+    depende_de: [Internet]
+
+# Reglas:
+# - criticidad alta => el agente no espera: avisa apenas hay problema.
+# - horario fuera de ventana => el agente puede posponer o bajar la prioridad.
+# - depende_de => si el padre está caído, no se reportan los hijos (evita ruido).

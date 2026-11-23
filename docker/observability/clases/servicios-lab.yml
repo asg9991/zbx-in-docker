@@ -1,0 +1,35 @@
+# Catalogo de servicios criticos del laboratorio (ejemplo funcional de D10).
+# En un cliente, este archivo va en SU repo privado, con sus nombres de negocio.
+
+site: lab
+actualizado: 2026-11-22
+
+servicios:
+  - nombre: Internet
+    criticidad: alta
+    hosts: [fw-sim-08, router-sim-02]
+    depende_de: []
+    # Override: para Internet, la latencia ya degrada y la perdida escala antes.
+    reglas:
+      latencia: {critico: 3, degradado: 2}
+      enlace:   {critico: 3, degradado: 2}
+
+  - nombre: Red de acceso
+    criticidad: alta
+    hosts: [core-sim-05, sw-sim-09, olt-sim-01, ap-sim-04]
+    depende_de: [Internet]
+
+  - nombre: Servidores
+    criticidad: alta
+    hosts: [server-sim-03, srv-sim-10]
+    depende_de: [Internet]
+
+  - nombre: Telefonía
+    criticidad: media
+    hosts: [pbx-sim-11]
+    depende_de: [Internet]
+
+  - nombre: Energía
+    criticidad: media
+    hosts: [ups-sim-12]
+    depende_de: []
