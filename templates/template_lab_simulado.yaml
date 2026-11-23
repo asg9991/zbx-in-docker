@@ -102,3 +102,19 @@ zabbix_export:
               opdata: 'Estado: {?last(/Lab Simulado/lab.link.status)}'
               priority: HIGH
               description: 'El link simulado reporta down. Ventana de incidente definida en scenarios.yml.'
+        - uuid: 7f3c1a2b4d5e46f7a8b9c0d1e2f3a4b5
+          type: TRAP
+          name: 'Trafico entrada (Mbps)'
+          key: lab.net.if.in
+          value_type: FLOAT
+          units: Mbps
+          history: 7d
+          trends: 30d
+        - uuid: 8a4d2b3c5e6f47a8b9c0d1e2f3a4b5c6
+          type: TRAP
+          name: 'Trafico salida (Mbps)'
+          key: lab.net.if.out
+          value_type: FLOAT
+          units: Mbps
+          history: 7d
+          trends: 30d

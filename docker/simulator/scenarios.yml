@@ -53,7 +53,7 @@ devices:
         baseline: 60
         ramp:
           target: 93
-          minutes: 15       # cruza el umbral (>85) a los ~11 min
+          minutes: 4        # cruza el umbral (>85) a los ~2 min: demo con rojo temprano
       - key: lab.mem.util
         baseline: 88
         jitter: 2           # cerca del umbral (>90): memoria inestable
@@ -122,3 +122,170 @@ devices:
           - every: 900
             duration: 240
             value: 210
+
+  # Cortes de enlace: el firewall parpadea cada ~8 min y ademas mide latencia.
+  fw-sim-08:
+    metrics:
+      - key: lab.link.status
+        baseline: 1
+        incidents:
+          - every: 480
+            duration: 90
+            value: 0
+      - key: lab.net.latency.ms
+        baseline: 12
+        jitter: 3
+        incidents:
+          - every: 480
+            duration: 90
+            value: 450
+      - key: lab.cpu.util
+        baseline: 22
+        jitter: 4
+
+  # Switch de acceso con enlace inestable y CPU normal.
+  sw-sim-09:
+    metrics:
+      - key: lab.link.status
+        baseline: 1
+        incidents:
+          - every: 300
+            duration: 60
+            value: 0
+      - key: lab.cpu.util
+        baseline: 15
+        jitter: 3
+      - key: lab.mem.util
+        baseline: 40
+        jitter: 4
+
+  # Servidor con disco creciendo y memoria al limite.
+  srv-sim-10:
+    metrics:
+      - key: lab.disk.used.pct
+        baseline: 55
+        ramp:
+          target: 91
+          minutes: 6        # cruza el umbral a los ~4 min
+      - key: lab.mem.util
+        baseline: 84
+        jitter: 3
+      - key: lab.cpu.util
+        baseline: 35
+        jitter: 8
+
+  # Central telefonica: CPU con picos y latencia hacia el proveedor.
+  pbx-sim-11:
+    metrics:
+      - key: lab.cpu.util
+        baseline: 28
+        jitter: 6
+        incidents:
+          - every: 720
+            duration: 150
+            value: 94
+      - key: lab.net.latency.ms
+        baseline: 30
+        jitter: 8
+
+  # UPS: sin metricas propias utiles, solo enlace y memoria.
+  ups-sim-12:
+    metrics:
+      - key: lab.link.status
+        baseline: 1
+        incidents:
+          - every: 1200
+            duration: 120
+            value: 0
+      - key: lab.mem.util
+        baseline: 20
+        jitter: 2
+
+
+# ---------------------------------------------------------------------------
+# Syslog: eventos por clase de equipo.
+#
+# No requiere host en Zabbix: el receptor acepta cualquier hostname. Los
+# equipos con metricas tambien aparecen aca para que la demo tenga logs y
+# metricas del mismo equipo. Las dos fuentes se generan por separado: no hay
+# correlacion garantizada entre una ventana de metrica y una linea de log.
+# ---------------------------------------------------------------------------
+syslog:
+  backfill_days: 0          # LAB_BACKFILL_DAYS lo sobreescribe puntualmente
+
+  events:
+    firewall:
+      - {tag: FTG-AUDIT, severity: warning, msg: "admin login from mgmt", weight: 3}
+      - {tag: FTG-DENY, severity: info, msg: "policy=wan-in src=$HOST dst=internal action=deny", weight: 6}
+      - {tag: FTG-ALERT, severity: err, msg: "IPS signature matched on outbound session", weight: 1}
+      - {tag: FTG-LINK, severity: warning, msg: "WAN interface link state changed", weight: 2}
+
+    router:
+      - {tag: LINK-3-DOWN, severity: err, msg: "GigabitEthernet0/1 down", weight: 2}
+      - {tag: LINK-3-UP, severity: info, msg: "GigabitEthernet0/1 up", weight: 2}
+      - {tag: OSPF-5-ADJCHG, severity: warning, msg: "neighbor 10.0.0.2 down", weight: 2}
+
+    switch:
+      - {tag: LINK-3-DOWN, severity: err, msg: "GigabitEthernet1/0/12 down", weight: 3}
+      - {tag: LINK-3-UP, severity: info, msg: "GigabitEthernet1/0/12 up", weight: 3}
+      - {tag: SPANTREE-2-BLOCK, severity: warning, msg: "loopguard blocked port Gi1/0/24", weight: 1}
+
+    ap:
+      - {tag: WLAN-2-CLIENT, severity: info, msg: "client asociado ssid=lab-guest", weight: 7}
+      - {tag: WLAN-4-DISASSOC, severity: warning, msg: "deauth reason=timeout", weight: 5}
+      - {tag: WLAN-3-ROGUE, severity: err, msg: "posible rogue AP detectado", weight: 1}
+
+    olt:
+      - {tag: ONT-5-ONLINE, severity: info, msg: "ONT registrada en PON 0/1/1", weight: 4}
+      - {tag: ONT-4-DYINGGASP, severity: warning, msg: "ONT sin respuesta, iniciando dying-gasp", weight: 3}
+      - {tag: PON-2-LOS, severity: err, msg: "perdida de senal en PON 0/1/2", weight: 2}
+
+    onu:
+      - {tag: ONU-5-ONLINE, severity: info, msg: "ONU en linea", weight: 4}
+      - {tag: ONU-4-LOS, severity: warning, msg: "ONU sin senal optica", weight: 2}
+
+    server:
+      - {tag: systemd-1-STARTED, severity: info, msg: "servicio nginx iniciado", weight: 4}
+      - {tag: kernel-3-OOM, severity: err, msg: "proceso matado por falta de memoria", weight: 1}
+      - {tag: disk-4-SPACE, severity: warning, msg: "/var con 92% de uso", weight: 3}
+
+    pbx:
+      - {tag: asterisk-3-REGFAIL, severity: err, msg: "troncal SIP sin registro", weight: 1}
+      - {tag: asterisk-6-REGOK, severity: info, msg: "troncal SIP registrada", weight: 3}
+
+    ups:
+      - {tag: UPS-2-ONBATT, severity: err, msg: "equipo en bateria", weight: 1}
+      - {tag: UPS-5-ONLINE, severity: info, msg: "retorno a linea electrica", weight: 2}
+
+  devices:
+    - {host: fw-sim-08,   class: firewall, per_hour: 24}
+    - {host: router-sim-02, class: router, per_hour: 16}
+    - {host: core-sim-05, class: switch, per_hour: 20}
+    - {host: sw-sim-09,   class: switch, per_hour: 32}
+    - {host: ap-sim-04,   class: ap,     per_hour: 48}
+    - {host: ap-lab-13,   class: ap,     per_hour: 36}
+    - {host: ap-lab-14,   class: ap,     per_hour: 28}
+    - {host: olt-sim-01,  class: olt,    per_hour: 24}
+    - {host: onu-sim-06,  class: onu,    per_hour: 12}
+    - {host: onu-sim-07,  class: onu,    per_hour: 12}
+    - {host: onu-lab-15,  class: onu,    per_hour: 8}
+    - {host: server-sim-03, class: server, per_hour: 16}
+    - {host: srv-sim-10,  class: server, per_hour: 28}
+    - {host: pbx-sim-11,  class: pbx,    per_hour: 20}
+    - {host: ups-sim-12,  class: ups,    per_hour: 4}
+    - {host: sw-lab-16,   class: switch, per_hour: 16}
+    - {host: sw-lab-17,   class: switch, per_hour: 12}
+
+# ---------------------------------------------------------------------------
+# Trafico de interfaces (Mbps). El simulador lo traduce a lab.net.if.in/out.
+# Cada equipo tiene una ventana de saturacion (x3) para que se vea movimiento.
+# ---------------------------------------------------------------------------
+traffic:
+  devices:
+    - {host: fw-sim-08,     in_mbps: 45, out_mbps: 22, every: 900, duration: 180}
+    - {host: router-sim-02, in_mbps: 80, out_mbps: 35, every: 900, duration: 240}
+    - {host: olt-sim-01,    in_mbps: 120, out_mbps: 40, every: 1200, duration: 300}
+    - {host: core-sim-05,   in_mbps: 200, out_mbps: 150, every: 900, duration: 180}
+    - {host: sw-sim-09,     in_mbps: 30, out_mbps: 12, every: 600, duration: 120}
+    - {host: ap-sim-04,     in_mbps: 18, out_mbps: 6, every: 600, duration: 120}
+    - {host: pbx-sim-11,    in_mbps: 8, out_mbps: 8, every: 720, duration: 150}

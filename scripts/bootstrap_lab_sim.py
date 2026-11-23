@@ -31,7 +31,8 @@ PASSWORD = os.getenv("ZABBIX_PASSWORD", "")
 
 HOSTGROUP = "Lab/Simulados"
 SIM_HOSTS = ["olt-sim-01", "router-sim-02", "server-sim-03", "ap-sim-04",
-             "core-sim-05", "onu-sim-06", "onu-sim-07"]
+             "core-sim-05", "onu-sim-06", "onu-sim-07",
+             "fw-sim-08", "sw-sim-09", "srv-sim-10", "pbx-sim-11", "ups-sim-12"]
 
 _request_id = 0
 
