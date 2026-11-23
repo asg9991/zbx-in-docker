@@ -1,0 +1,50 @@
+# Topologia del mapa de red del laboratorio.
+#
+# `name` debe coincidir con el host en Zabbix; `hostid` es obligatorio porque
+# el filtro por nombre de host falla en Zabbix 7.4.
+# `level` es la columna (0 = izquierda). La posicion se calcula con `layout`,
+# asi que agregar un equipo no obliga a mover nada a mano.
+# `icon` es opcional: nombre de un icono de Grafana (img/icons/unicons/).
+
+slug: lab
+name: lab
+title: Mapa de red
+group: Lab/Simulados
+
+layout:
+  node_w: 120        # ancho del nodo
+  node_h: 44         # alto de la caja de texto
+  icon_size: 40      # lado del icono (si el nodo tiene icon)
+  x_gap: 170         # separacion horizontal entre columnas
+  y_gap: 34          # separacion vertical entre nodos de la misma columna
+  origin_x: 20
+  origin_y: 60
+  line_color: "#8fa6c1"
+  line_size: 1.5
+
+nodes:
+  - {name: fw-sim-08,     label: Firewall,   hostid: "10665", level: 0, icon: shield}
+  - {name: router-sim-02, label: Router,     hostid: "10652", level: 1, icon: exchange}
+  - {name: core-sim-05,   label: Core,       hostid: "10660", level: 2, icon: sitemap}
+  - {name: sw-sim-09,     label: Switch,     hostid: "10666", level: 3, icon: exchange}
+  - {name: olt-sim-01,    label: OLT,        hostid: "10651", level: 3, icon: bolt}
+  - {name: ap-sim-04,     label: AP,         hostid: "10654", level: 3, icon: wifi}
+  - {name: server-sim-03, label: Servidor,   hostid: "10653", level: 4, icon: server}
+  - {name: srv-sim-10,    label: Servidor 2, hostid: "10667", level: 4, icon: server}
+  - {name: onu-sim-06,    label: ONU 1,      hostid: "10661", level: 4, icon: plug}
+  - {name: onu-sim-07,    label: ONU 2,      hostid: "10662", level: 4, icon: plug}
+  - {name: pbx-sim-11,    label: PBX,        hostid: "10668", level: 4, icon: monitor}
+  - {name: ups-sim-12,    label: UPS,        hostid: "10669", level: 5, icon: bolt}
+
+edges:
+  - [fw-sim-08, router-sim-02]
+  - [router-sim-02, core-sim-05]
+  - [core-sim-05, sw-sim-09]
+  - [core-sim-05, olt-sim-01]
+  - [core-sim-05, ap-sim-04]
+  - [core-sim-05, server-sim-03]
+  - [core-sim-05, srv-sim-10]
+  - [core-sim-05, pbx-sim-11]
+  - [olt-sim-01, onu-sim-06]
+  - [olt-sim-01, onu-sim-07]
+  - [server-sim-03, ups-sim-12]

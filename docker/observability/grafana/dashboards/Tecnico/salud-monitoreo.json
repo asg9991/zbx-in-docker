@@ -1,0 +1,800 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Estado General",
+      "tags": [
+        "nav",
+        "cliente"
+      ],
+      "asDropdown": true,
+      "icon": "user",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Técnico",
+      "tags": [
+        "nav",
+        "tecnico"
+      ],
+      "asDropdown": true,
+      "icon": "wrench",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Mapas",
+      "tags": [
+        "nav",
+        "mapa"
+      ],
+      "asDropdown": true,
+      "icon": "sitemap",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Items sin datos",
+      "id": 1,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"item.get\", \"params\": {\"output\": [\"itemid\", \"name\", \"error\"], \"selectHosts\": [\"host\"], \"filter\": {\"state\": 1}, \"sortfield\": \"name\", \"sortorder\": \"ASC\", \"limit\": 500}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "hosts.0.host",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "name",
+              "text": "Item sin datos",
+              "type": "string"
+            },
+            {
+              "selector": "error",
+              "text": "Motivo",
+              "type": "string"
+            }
+          ],
+          "query": "items_sin_datos"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Equipo",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": null,
+                "to": 0,
+                "result": {
+                  "text": "Todo reporta",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": 20,
+                "result": {
+                  "text": "Revisar",
+                  "color": "yellow",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 21,
+                "to": null,
+                "result": {
+                  "text": "Monitoreo roto",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "Sin datos",
+          "links": [
+            {
+              "title": "Ver detalle por equipo",
+              "url": "/d/salud-monitoreo?viewPanel=4",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Equipos sin respuesta",
+      "id": 2,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"hostinterface.get\", \"params\": {\"output\": [\"hostid\", \"error\"], \"selectHosts\": [\"host\"], \"filter\": {\"available\": 2}, \"limit\": 50}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "hosts.0.host",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "error",
+              "text": "Motivo",
+              "type": "string"
+            }
+          ],
+          "query": "hosts_sin_respuesta"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Equipo",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": null,
+                "to": 0,
+                "result": {
+                  "text": "Todos responden",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": null,
+                "result": {
+                  "text": "Revisar",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "Sin datos",
+          "links": [
+            {
+              "title": "Ver detalle por equipo",
+              "url": "/d/salud-monitoreo?viewPanel=5",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Cola de Zabbix",
+      "id": 3,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"item.get\", \"params\": {\"output\": [\"lastvalue\"], \"filter\": {\"key_\": \"zabbix[queue]\"}}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "lastvalue",
+              "text": "cola",
+              "type": "number"
+            }
+          ],
+          "query": "cola"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": null,
+                "to": 0,
+                "result": {
+                  "text": "Sin atraso",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": 100,
+                "result": {
+                  "text": "Con atraso",
+                  "color": "orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 101,
+                "to": null,
+                "result": {
+                  "text": "Saturado",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "Sin datos"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "title": "Items sin datos: detalle",
+      "id": 4,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"item.get\", \"params\": {\"output\": [\"itemid\", \"name\", \"error\"], \"selectHosts\": [\"host\"], \"filter\": {\"state\": 1}, \"sortfield\": \"name\", \"sortorder\": \"ASC\", \"limit\": 500}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "hosts.0.host",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "name",
+              "text": "Item sin datos",
+              "type": "string"
+            },
+            {
+              "selector": "error",
+              "text": "Motivo",
+              "type": "string"
+            }
+          ],
+          "query": "items_sin_datos"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": true,
+          "fields": "",
+          "reducer": [
+            "count"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Equipo"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Equipo"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Item sin datos"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "title": "Equipos sin respuesta: detalle",
+      "id": 5,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"hostinterface.get\", \"params\": {\"output\": [\"hostid\", \"error\"], \"selectHosts\": [\"host\"], \"filter\": {\"available\": 2}, \"limit\": 50}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "hosts.0.host",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "error",
+              "text": "Motivo",
+              "type": "string"
+            }
+          ],
+          "query": "hosts_sin_respuesta"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cola de Zabbix (ultimas 24 h)",
+      "id": 6,
+      "datasource": {
+        "type": "alexanderzobnin-zabbix-datasource",
+        "uid": "zabbix"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "application": {
+            "filter": ""
+          },
+          "countTriggersBy": "",
+          "datasource": {
+            "type": "alexanderzobnin-zabbix-datasource",
+            "uid": "zabbix"
+          },
+          "evaltype": "0",
+          "functions": [],
+          "group": {
+            "filter": "Zabbix servers"
+          },
+          "host": {
+            "filter": "Zabbix server"
+          },
+          "item": {
+            "filter": "Queue"
+          },
+          "itemTag": {
+            "filter": ""
+          },
+          "itemids": "",
+          "macro": {
+            "filter": ""
+          },
+          "mode": 0,
+          "options": {
+            "count": false,
+            "disableDataAlignment": false,
+            "showDisabledItems": false,
+            "skipEmptyValues": false,
+            "useTrends": "default",
+            "useZabbixValueMapping": false
+          },
+          "proxy": {
+            "filter": ""
+          },
+          "queryType": "0",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "schema": 13,
+          "tags": {
+            "filter": ""
+          },
+          "textFilter": "",
+          "trigger": {
+            "filter": ""
+          },
+          "useCaptureGroups": false
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "nav",
+    "monitoreo",
+    "salud",
+    "tecnico"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": false
+  },
+  "timezone": "browser",
+  "title": "Salud del monitoreo",
+  "uid": "salud-monitoreo",
+  "version": 1,
+  "weekStart": ""
+}

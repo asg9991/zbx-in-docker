@@ -1,0 +1,881 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Estado General",
+      "tags": [
+        "nav",
+        "cliente"
+      ],
+      "asDropdown": true,
+      "icon": "user",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Técnico",
+      "tags": [
+        "nav",
+        "tecnico"
+      ],
+      "asDropdown": true,
+      "icon": "wrench",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Mapas",
+      "tags": [
+        "nav",
+        "mapa"
+      ],
+      "asDropdown": true,
+      "icon": "sitemap",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Internet",
+      "id": 1,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "s0",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"e_0\": ($count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0) or $count(result[$number(severity) >= 4]) > $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\") or $contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\") or $contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\") or $contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\") or $contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\") or $contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\") or $contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\") or $contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\") or $contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\") or $contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\") or $contains($lowercase(name), \"cpu\") or $contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) ? 2 : ($count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0 ? 1 : 0), \"n_0\": $string($count(result)) & \" problemas\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10665\", \"10652\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "e_0",
+              "text": "e_0",
+              "type": "number"
+            },
+            {
+              "selector": "n_0",
+              "text": "n_0",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "e_0",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Sin datos",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "semi-dark-green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Degradado",
+                  "color": "semi-dark-orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Crítico",
+                  "color": "semi-dark-red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_0"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Red de acceso",
+      "id": 2,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "s1",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"e_1\": ($count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0) or $count(result[$number(severity) >= 4]) > $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\") or $contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\") or $contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\") or $contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\") or $contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\") or $contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\") or $contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\") or $contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\") or $contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\") or $contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\") or $contains($lowercase(name), \"cpu\") or $contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) ? 2 : ($count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0 ? 1 : 0), \"n_1\": $string($count(result)) & \" problemas\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10660\", \"10666\", \"10651\", \"10654\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "e_1",
+              "text": "e_1",
+              "type": "number"
+            },
+            {
+              "selector": "n_1",
+              "text": "n_1",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "e_1",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Sin datos",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "semi-dark-green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Degradado",
+                  "color": "semi-dark-orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Crítico",
+                  "color": "semi-dark-red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_1"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Servidores",
+      "id": 3,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "s2",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"e_2\": ($count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0) or $count(result[$number(severity) >= 4]) > $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\") or $contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\") or $contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\") or $contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\") or $contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\") or $contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\") or $contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\") or $contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\") or $contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\") or $contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\") or $contains($lowercase(name), \"cpu\") or $contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) ? 2 : ($count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0 ? 1 : 0), \"n_2\": $string($count(result)) & \" problemas\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10653\", \"10667\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "e_2",
+              "text": "e_2",
+              "type": "number"
+            },
+            {
+              "selector": "n_2",
+              "text": "n_2",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "e_2",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Sin datos",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "semi-dark-green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Degradado",
+                  "color": "semi-dark-orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Crítico",
+                  "color": "semi-dark-red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_2"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Telefonía",
+      "id": 4,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "s3",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"e_3\": ($count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0) or $count(result[$number(severity) >= 4]) > $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\") or $contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\") or $contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\") or $contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\") or $contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\") or $contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\") or $contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\") or $contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\") or $contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\") or $contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\") or $contains($lowercase(name), \"cpu\") or $contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) ? 2 : ($count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0 ? 1 : 0), \"n_3\": $string($count(result)) & \" problemas\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10668\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "e_3",
+              "text": "e_3",
+              "type": "number"
+            },
+            {
+              "selector": "n_3",
+              "text": "n_3",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "e_3",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Sin datos",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "semi-dark-green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Degradado",
+                  "color": "semi-dark-orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Crítico",
+                  "color": "semi-dark-red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_3"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Energía",
+      "id": 5,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "s4",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"e_4\": ($count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 5 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0) or $count(result[$number(severity) >= 4]) > $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\") or $contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\") or $contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\") or $contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\") or $contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\") or $contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\") or $contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\") or $contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\") or $contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\") or $contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\") or $contains($lowercase(name), \"cpu\") or $contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) ? 2 : ($count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"link caido\") or $contains($lowercase(name), \"link down\") or $contains($lowercase(name), \"interface down\") or $contains($lowercase(name), \"unavailable\") or $contains($lowercase(name), \"enlace caido\") or $contains($lowercase(name), \"enlace caído\") or $contains($lowercase(name), \"sin respuesta a ping\") or $contains($lowercase(name), \"lower speed\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ont-\") or $contains($lowercase(name), \"ont \") or $contains($lowercase(name), \"pon-\") or $contains($lowercase(name), \"pon \") or $contains($lowercase(name), \"dyinggasp\") or $contains($lowercase(name), \"perdida de senal\") or $contains($lowercase(name), \"pérdida de señal\") or $contains($lowercase(name), \"sin senal\") or $contains($lowercase(name), \"sin señal\") or $contains($lowercase(name), \"los:\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"no traffic\") or $contains($lowercase(name), \"sin trafico\") or $contains($lowercase(name), \"sin tráfico\") or $contains($lowercase(name), \"no data sent\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"tasa de errores\") or $contains($lowercase(name), \"wlan\") or $contains($lowercase(name), \"clientes\") or $contains($lowercase(name), \"deauth\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"disco\") or $contains($lowercase(name), \"disk\") or $contains($lowercase(name), \"filesystem\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"memoria\") or $contains($lowercase(name), \"memory\") or $contains($lowercase(name), \"swap\") or $contains($lowercase(name), \"oom\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ospf\") or $contains($lowercase(name), \"bgp\") or $contains($lowercase(name), \"neighbor\") or $contains($lowercase(name), \"adyacencia\"))]) > 0 or $count(result[$number(severity) >= 3 and ($contains($lowercase(name), \"servicio detenido\") or $contains($lowercase(name), \"service\") or $contains($lowercase(name), \"not running\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"ups\") or $contains($lowercase(name), \"bateria\") or $contains($lowercase(name), \"energia\") or $contains($lowercase(name), \"poe\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"login\") or $contains($lowercase(name), \"deny\") or $contains($lowercase(name), \"ips\") or $contains($lowercase(name), \"auth\"))]) > 0 or $count(result[$number(severity) >= 4 and ($contains($lowercase(name), \"cpu\"))]) > 0 or $count(result[$number(severity) >= 2 and ($contains($lowercase(name), \"latencia\") or $contains($lowercase(name), \"ping response time\") or $contains($lowercase(name), \"perdida\") or $contains($lowercase(name), \"packet loss\") or $contains($lowercase(name), \"loss\"))]) > 0 ? 1 : 0), \"n_4\": $string($count(result)) & \" problemas\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10669\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "e_4",
+              "text": "e_4",
+              "type": "number"
+            },
+            {
+              "selector": "n_4",
+              "text": "n_4",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "e_4",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Sin datos",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "semi-dark-green",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Degradado",
+                  "color": "semi-dark-orange",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Crítico",
+                  "color": "semi-dark-red",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_4"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "title": "Problemas de los servicios críticos",
+      "id": 90,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Problema\": $v.name, \"Gravedad\": $string($v.severity), \"Antiguedad\": ($millis() - $number($v.clock)*1000) > 86400000 ? $string($round(($millis() - $number($v.clock)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.clock)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\", \"clock\"], \"hostids\": [\"10665\", \"10652\", \"10660\", \"10666\", \"10651\", \"10654\", \"10653\", \"10667\", \"10668\", \"10669\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "footer": {
+          "countRows": true,
+          "fields": "",
+          "reducer": [
+            "count"
+          ],
+          "show": true
+        },
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Gravedad"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gravedad"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "Aviso",
+                        "color": "semi-dark-yellow",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "3": {
+                        "text": "Media",
+                        "color": "semi-dark-orange",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "4": {
+                        "text": "Alta",
+                        "color": "semi-dark-red",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "5": {
+                        "text": "Desastre",
+                        "color": "dark-red",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "nav",
+    "cliente",
+    "servicios"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "browser",
+  "title": "Estado de servicios",
+  "uid": "servicios",
+  "version": 1,
+  "weekStart": ""
+}

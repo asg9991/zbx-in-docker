@@ -1,0 +1,967 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Estado General",
+      "tags": [
+        "nav",
+        "cliente"
+      ],
+      "asDropdown": true,
+      "icon": "user",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Técnico",
+      "tags": [
+        "nav",
+        "tecnico"
+      ],
+      "asDropdown": true,
+      "icon": "wrench",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Mapas",
+      "tags": [
+        "nav",
+        "mapa"
+      ],
+      "asDropdown": true,
+      "icon": "sitemap",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "canvas",
+      "title": "Mapa - núcleo y servidores",
+      "description": "Verde = sin problemas activos. Rojo = tiene problemas (detalle en la tabla de abajo). Cada equipo consulta su propio estado.",
+      "id": 1,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "q0",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"c_0\": $count(result) > 0 ? 1 : 0, \"s_0\": $count(result) > 0 ? $string($count(result)) & \" problemas\" : \"OK\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10660\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "c_0",
+              "text": "c_0",
+              "type": "number"
+            },
+            {
+              "selector": "s_0",
+              "text": "s_0",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "refId": "q1",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"c_1\": $count(result) > 0 ? 1 : 0, \"s_1\": $count(result) > 0 ? $string($count(result)) & \" problemas\" : \"OK\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10653\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "c_1",
+              "text": "c_1",
+              "type": "number"
+            },
+            {
+              "selector": "s_1",
+              "text": "s_1",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "refId": "q2",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"c_2\": $count(result) > 0 ? 1 : 0, \"s_2\": $count(result) > 0 ? $string($count(result)) & \" problemas\" : \"OK\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10667\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "c_2",
+              "text": "c_2",
+              "type": "number"
+            },
+            {
+              "selector": "s_2",
+              "text": "s_2",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "refId": "q3",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"c_3\": $count(result) > 0 ? 1 : 0, \"s_3\": $count(result) > 0 ? $string($count(result)) & \" problemas\" : \"OK\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10668\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "c_3",
+              "text": "c_3",
+              "type": "number"
+            },
+            {
+              "selector": "s_3",
+              "text": "s_3",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "refId": "q4",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map([1], function($x){ {\"c_4\": $count(result) > 0 ? 1 : 0, \"s_4\": $count(result) > 0 ? $string($count(result)) & \" problemas\" : \"OK\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\"], \"hostids\": [\"10669\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "c_4",
+              "text": "c_4",
+              "type": "number"
+            },
+            {
+              "selector": "s_4",
+              "text": "s_4",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c_0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c_1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c_2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c_3"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c_4"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "inlineEditing": false,
+        "panZoom": true,
+        "showAdvancedTypes": false,
+        "zoomToContent": true,
+        "root": {
+          "name": "root",
+          "type": "frame",
+          "elements": [
+            {
+              "type": "icon",
+              "name": "n_core-sim-05",
+              "placement": {
+                "left": 60,
+                "top": 164,
+                "width": 40,
+                "height": 40
+              },
+              "config": {
+                "path": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/sitemap.svg"
+                },
+                "fill": {
+                  "field": "c_0"
+                }
+              },
+              "links": [
+                {
+                  "title": "Problemas de core-sim-05",
+                  "url": "/d/equipo?var-host=core-sim-05&var-hostid=10660"
+                }
+              ],
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "n_server-sim-03",
+                  "path": "straight",
+                  "color": {
+                    "fixed": "#8fa6c1"
+                  },
+                  "size": {
+                    "fixed": 1.5,
+                    "min": 1,
+                    "max": 3
+                  },
+                  "lineStyle": {
+                    "fill": "solid"
+                  }
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "n_srv-sim-10",
+                  "path": "straight",
+                  "color": {
+                    "fixed": "#8fa6c1"
+                  },
+                  "size": {
+                    "fixed": 1.5,
+                    "min": 1,
+                    "max": 3
+                  },
+                  "lineStyle": {
+                    "fill": "solid"
+                  }
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "n_pbx-sim-11",
+                  "path": "straight",
+                  "color": {
+                    "fixed": "#8fa6c1"
+                  },
+                  "size": {
+                    "fixed": 1.5,
+                    "min": 1,
+                    "max": 3
+                  },
+                  "lineStyle": {
+                    "fill": "solid"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "l_core-sim-05",
+              "placement": {
+                "left": 20,
+                "top": 208,
+                "width": 120,
+                "height": 20
+              },
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Core"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              }
+            },
+            {
+              "type": "icon",
+              "name": "n_server-sim-03",
+              "placement": {
+                "left": 230,
+                "top": 60,
+                "width": 40,
+                "height": 40
+              },
+              "config": {
+                "path": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/server.svg"
+                },
+                "fill": {
+                  "field": "c_1"
+                }
+              },
+              "links": [
+                {
+                  "title": "Problemas de server-sim-03",
+                  "url": "/d/equipo?var-host=server-sim-03&var-hostid=10653"
+                }
+              ],
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "n_ups-sim-12",
+                  "path": "straight",
+                  "color": {
+                    "fixed": "#8fa6c1"
+                  },
+                  "size": {
+                    "fixed": 1.5,
+                    "min": 1,
+                    "max": 3
+                  },
+                  "lineStyle": {
+                    "fill": "solid"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "l_server-sim-03",
+              "placement": {
+                "left": 190,
+                "top": 104,
+                "width": 120,
+                "height": 20
+              },
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Servidor"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              }
+            },
+            {
+              "type": "icon",
+              "name": "n_srv-sim-10",
+              "placement": {
+                "left": 230,
+                "top": 164,
+                "width": 40,
+                "height": 40
+              },
+              "config": {
+                "path": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/server.svg"
+                },
+                "fill": {
+                  "field": "c_2"
+                }
+              },
+              "links": [
+                {
+                  "title": "Problemas de srv-sim-10",
+                  "url": "/d/equipo?var-host=srv-sim-10&var-hostid=10667"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "l_srv-sim-10",
+              "placement": {
+                "left": 190,
+                "top": 208,
+                "width": 120,
+                "height": 20
+              },
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Servidor 2"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              }
+            },
+            {
+              "type": "icon",
+              "name": "n_pbx-sim-11",
+              "placement": {
+                "left": 230,
+                "top": 268,
+                "width": 40,
+                "height": 40
+              },
+              "config": {
+                "path": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/monitor.svg"
+                },
+                "fill": {
+                  "field": "c_3"
+                }
+              },
+              "links": [
+                {
+                  "title": "Problemas de pbx-sim-11",
+                  "url": "/d/equipo?var-host=pbx-sim-11&var-hostid=10668"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "l_pbx-sim-11",
+              "placement": {
+                "left": 190,
+                "top": 312,
+                "width": 120,
+                "height": 20
+              },
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "PBX"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              }
+            },
+            {
+              "type": "icon",
+              "name": "n_ups-sim-12",
+              "placement": {
+                "left": 400,
+                "top": 164,
+                "width": 40,
+                "height": 40
+              },
+              "config": {
+                "path": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/bolt.svg"
+                },
+                "fill": {
+                  "field": "c_4"
+                }
+              },
+              "links": [
+                {
+                  "title": "Problemas de ups-sim-12",
+                  "url": "/d/equipo?var-host=ups-sim-12&var-hostid=10669"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "l_ups-sim-12",
+              "placement": {
+                "left": 360,
+                "top": 208,
+                "width": 120,
+                "height": 20
+              },
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "UPS"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              }
+            }
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Problemas de los equipos del mapa",
+      "id": 2,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Problema\": $v.name, \"Gravedad\": $string($v.severity), \"Antiguedad\": ($millis() - $number($v.clock)*1000) > 86400000 ? $string($round(($millis() - $number($v.clock)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.clock)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\", \"clock\"], \"hostids\": [\"10660\", \"10653\", \"10667\", \"10668\", \"10669\"], \"recent\": false, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "footer": {
+          "countRows": true,
+          "fields": "",
+          "reducer": [
+            "count"
+          ],
+          "show": true
+        },
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Gravedad"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gravedad"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Sin clasificar",
+                        "color": "text",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "Informacion",
+                        "color": "blue",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "Aviso",
+                        "color": "semi-dark-yellow",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "3": {
+                        "text": "Media",
+                        "color": "semi-dark-orange",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "4": {
+                        "text": "Alta",
+                        "color": "semi-dark-red",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "5": {
+                        "text": "Desastre",
+                        "color": "dark-red",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Antiguedad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "nav",
+    "mapa",
+    "red"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": false
+  },
+  "timezone": "browser",
+  "title": "Mapa - núcleo y servidores",
+  "uid": "mapa-lab-core",
+  "version": 1,
+  "weekStart": ""
+}

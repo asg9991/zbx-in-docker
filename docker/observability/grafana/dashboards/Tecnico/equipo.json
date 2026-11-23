@@ -1,0 +1,418 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Estado General",
+      "tags": [
+        "nav",
+        "cliente"
+      ],
+      "asDropdown": true,
+      "icon": "user",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Técnico",
+      "tags": [
+        "nav",
+        "tecnico"
+      ],
+      "asDropdown": true,
+      "icon": "wrench",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Mapas",
+      "tags": [
+        "nav",
+        "mapa"
+      ],
+      "asDropdown": true,
+      "icon": "sitemap",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "row",
+      "title": "$host",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Problemas activos de este equipo",
+      "id": 2,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Problema\": $v.name, \"Gravedad\": $string($v.severity), \"Antiguedad\": ($millis() - $number($v.clock)*1000) > 86400000 ? $string($round(($millis() - $number($v.clock)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.clock)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\", \"clock\"], \"hostids\": [\"${hostid}\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ],
+          "query": "problemas_host"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Problema",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "Sin datos",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-green",
+                "value": null
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "title": "Problemas",
+      "id": 3,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Problema\": $v.name, \"Gravedad\": $string($v.severity), \"Antiguedad\": ($millis() - $number($v.clock)*1000) > 86400000 ? $string($round(($millis() - $number($v.clock)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.clock)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"name\", \"severity\", \"clock\"], \"hostids\": [\"${hostid}\"], \"recent\": false, \"limit\": 100}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ],
+          "query": "problemas_host"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Gravedad"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gravedad"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Sin clasificar",
+                        "color": "text",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "Informacion",
+                        "color": "blue",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "Aviso",
+                        "color": "semi-dark-yellow",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "3": {
+                        "text": "Media",
+                        "color": "semi-dark-orange",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "4": {
+                        "text": "Alta",
+                        "color": "semi-dark-red",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "5": {
+                        "text": "Desastre",
+                        "color": "dark-red",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Logs del equipo",
+      "id": 4,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"syslog\", host=\"${host}\"}",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "equipo"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "label": "Equipo",
+        "type": "textbox",
+        "current": {},
+        "hide": 0,
+        "options": []
+      },
+      {
+        "name": "hostid",
+        "type": "textbox",
+        "current": {},
+        "hide": 2,
+        "options": []
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": false
+  },
+  "timezone": "browser",
+  "title": "Equipo",
+  "uid": "equipo",
+  "version": 1,
+  "weekStart": ""
+}

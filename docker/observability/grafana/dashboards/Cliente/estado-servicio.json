@@ -1,0 +1,853 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Estado General",
+      "tags": [
+        "nav",
+        "cliente"
+      ],
+      "asDropdown": true,
+      "icon": "user",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Técnico",
+      "tags": [
+        "nav",
+        "tecnico"
+      ],
+      "asDropdown": true,
+      "icon": "wrench",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "dashboards",
+      "title": "Mapas",
+      "tags": [
+        "nav",
+        "mapa"
+      ],
+      "asDropdown": true,
+      "icon": "sitemap",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Problemas graves",
+      "id": 1,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Equipo\": $v.hosts[0].host, \"Problema\": $v.description, \"Gravedad\": $v.priority, \"Antiguedad\": ($millis() - $number($v.lastchange)*1000) > 86400000 ? $string($round(($millis() - $number($v.lastchange)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.lastchange)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"trigger.get\", \"params\": {\"output\": [\"triggerid\", \"description\", \"priority\", \"lastchange\"], \"selectHosts\": [\"host\"], \"only_true\": true, \"monitored\": true, \"sortfield\": \"priority\", \"sortorder\": \"DESC\", \"limit\": 100, \"filter\": {\"priority\": [4, 5]}}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Equipo",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ],
+          "query": "problemas_altos_tabla"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Equipo",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "Sin datos",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-green",
+                "value": null
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 1
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Ver solo problemas graves",
+              "url": "/d/problemas?viewPanel=1",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Avisos",
+      "id": 2,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Equipo\": $v.hosts[0].host, \"Problema\": $v.description, \"Gravedad\": $v.priority, \"Antiguedad\": ($millis() - $number($v.lastchange)*1000) > 86400000 ? $string($round(($millis() - $number($v.lastchange)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.lastchange)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"trigger.get\", \"params\": {\"output\": [\"triggerid\", \"description\", \"priority\", \"lastchange\"], \"selectHosts\": [\"host\"], \"only_true\": true, \"monitored\": true, \"sortfield\": \"priority\", \"sortorder\": \"DESC\", \"limit\": 100, \"filter\": {\"priority\": [2, 3]}}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Equipo",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ],
+          "query": "avisos_tabla"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Equipo",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "Sin datos",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-green",
+                "value": null
+              },
+              {
+                "color": "semi-dark-yellow",
+                "value": 1
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Ver solo avisos",
+              "url": "/d/problemas?viewPanel=2",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Equipos caidos",
+      "id": 3,
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "result",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"hostinterface.get\", \"params\": {\"output\": [\"hostid\"], \"selectHosts\": [\"host\"], \"filter\": {\"available\": 2}, \"limit\": 200}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "hosts.0.host",
+              "text": "Equipo",
+              "type": "string"
+            }
+          ],
+          "query": "equipos_caidos_kpi"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "Equipo",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "Sin datos",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-green",
+                "value": null
+              },
+              {
+                "color": "semi-dark-orange",
+                "value": 1
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Ver equipos sin respuesta",
+              "url": "/d/salud-monitoreo?viewPanel=5",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "zabbix-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gravedad"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Sin clasificar",
+                        "color": "text",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "Informacion",
+                        "color": "blue",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "Aviso",
+                        "color": "yellow",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "3": {
+                        "text": "Media",
+                        "color": "orange",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "4": {
+                        "text": "Alta",
+                        "color": "red",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "5": {
+                        "text": "Desastre",
+                        "color": "dark-red",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Equipo"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Antiguedad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Gravedad"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "zabbix-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "$map(result, function($v){ {\"Equipo\": $v.hosts[0].host, \"Problema\": $v.description, \"Gravedad\": $v.priority, \"Antiguedad\": ($millis() - $number($v.lastchange)*1000) > 86400000 ? $string($round(($millis() - $number($v.lastchange)*1000)/86400000)) & \" d\" : $string($round(($millis() - $number($v.lastchange)*1000)/3600000)) & \" h\"} })",
+          "filters": [],
+          "url": "http://zabbix-web:8080/api_jsonrpc.php",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"jsonrpc\": \"2.0\", \"method\": \"trigger.get\", \"params\": {\"output\": [\"triggerid\", \"description\", \"priority\", \"lastchange\"], \"selectHosts\": [\"host\"], \"only_true\": true, \"monitored\": true, \"sortfield\": \"priority\", \"sortorder\": \"DESC\", \"limit\": 100, \"filter\": {\"priority\": [2, 3, 4, 5]}}, \"id\": 1}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json-rpc"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "selector": "Equipo",
+              "text": "Equipo",
+              "type": "string"
+            },
+            {
+              "selector": "Problema",
+              "text": "Problema",
+              "type": "string"
+            },
+            {
+              "selector": "Gravedad",
+              "text": "Gravedad",
+              "type": "string"
+            },
+            {
+              "selector": "Antiguedad",
+              "text": "Antiguedad",
+              "type": "string"
+            }
+          ],
+          "query": "problemas_todos_tabla"
+        }
+      ],
+      "title": "Que esta pasando ahora",
+      "type": "table",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Equipo": 0,
+              "Problema": 1,
+              "Gravedad": 2,
+              "Antiguedad": 3
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Eventos de red de las ultimas 24 h",
+      "id": 5,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({job=\"syslog\", severity=~\"err|crit|alert|emerg\"}[24h]))",
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({job=\"syslog\", severity=\"warning\"}[24h]))",
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({job=\"syslog\", severity=~\"info|notice\"}[24h]))",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Errores"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ver detalle",
+                    "url": "/d/eventos?viewPanel=1",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Avisos"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ver detalle",
+                    "url": "/d/eventos?viewPanel=2",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Informativos"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ver detalle",
+                    "url": "/d/eventos?viewPanel=3",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "displayMode": "basic",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      }
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 6,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"syslog\", severity=~\"warning|err|crit|alert|emerg\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Ultimos avisos de los equipos",
+      "type": "logs"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 7,
+      "panels": [
+        {
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 29
+          },
+          "id": 8,
+          "options": {
+            "content": "### Vista tecnica\n\n- [Abrir dashboard tecnico](/d/tecnico-observabilidad) — logs completos y metricas de Zabbix.\n- [Salud del monitoreo](/d/salud-monitoreo) — items sin datos y equipos que dejaron de responder.\n- [Explorar logs (Explore)](/explore) — consultas ad-hoc.\n\nConsultas utiles en Explore (datasource **Loki**):\n\n| Que quiero | Consulta |\n| --- | --- |\n| Todo un equipo | `{host=\"nombre-del-equipo\"}` |\n| Solo errores | `{severity=~\"err|crit|alert|emerg\"}` |\n| Un equipo, solo errores | `{host=\"equipo\", severity=~\"err|crit\"}` |\n| Buscar texto | `{job=\"syslog\"} |= \"texto\"` |\n| Firewall | `{host=~\"fw-.*\"} |= \"deny\"` |\n| Logs del stack Zabbix | `{job=\"docker\"}` |\n\nGrafana es solo lectura: no cambia datos ni alertas (ADR 0001).",
+            "mode": "markdown"
+          },
+          "title": "Consultas y detalle",
+          "type": "text"
+        }
+      ],
+      "title": "Para tecnicos (avanzado)",
+      "type": "row"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "nav",
+    "cliente",
+    "estado",
+    "loki",
+    "zabbix"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "browser",
+  "title": "Estado de la Red",
+  "uid": "estado-servicio",
+  "version": 1,
+  "weekStart": ""
+}

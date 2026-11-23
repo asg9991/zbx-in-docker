@@ -1,0 +1,30 @@
+# Segundo mapa del mismo sitio: solo el nucleo y los servidores.
+# Demuestra que se pueden tener varios mapas sin mezclar todo.
+
+slug: lab-core
+title: Mapa - núcleo y servidores
+folder: Tecnico
+
+layout:
+  node_w: 120
+  node_h: 44
+  icon_size: 40
+  x_gap: 170
+  y_gap: 60
+  origin_x: 20
+  origin_y: 60
+  line_color: "#8fa6c1"
+  line_size: 1.5
+
+nodes:
+  - {name: core-sim-05,   label: Core,       level: 0, icon: sitemap}
+  - {name: server-sim-03, label: Servidor,   level: 1, icon: server}
+  - {name: srv-sim-10,    label: Servidor 2, level: 1, icon: server}
+  - {name: pbx-sim-11,    label: PBX,        level: 1, icon: monitor}
+  - {name: ups-sim-12,    label: UPS,        level: 2, icon: bolt}
+
+edges:
+  - [core-sim-05, server-sim-03]
+  - [core-sim-05, srv-sim-10]
+  - [core-sim-05, pbx-sim-11]
+  - [server-sim-03, ups-sim-12]
