@@ -23,7 +23,7 @@ desde `docker/.env`, un archivo que vive junto al `docker-compose.yml` y está
 gitignored (nunca se commitea).
 
 ```bash
-cp .env.example docker/.env
+cp docker/.env.example docker/.env
 ```
 
 Generar una contraseña segura y completarla en el archivo:
@@ -101,7 +101,7 @@ DATA_DIR=/home/usuario/zbx-in-docker/data
 
 La imagen oficial trae defaults mínimos: `StartPollers=5`, `StartPingers=1`, `CacheSize=32M`. Con >50 hosts o mucho SNMP/ICMP eso genera cola, `temporarily disabling` y falsos positivos idénticos a los vistos en producción.
 
-El repo trae un **perfil base productivo** en `.env.example` probado en producción (123 hosts / 28k items / 32 APs / 8 cores / 62 GiB):
+El repo trae un **perfil base productivo** en `docker/.env.example` probado en producción (123 hosts / 28k items / 32 APs / 8 cores / 62 GiB):
 
 ```ini
 ZBX_STARTPOLLERS=30

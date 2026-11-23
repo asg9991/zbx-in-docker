@@ -10,7 +10,7 @@ cliente antes: `instalacion.md` §Elección de TLS por sitio.
 - `SERVER_NAME` con DNS público resolviendo a la IP del host.
 - Puertos 80 y 443 accesibles desde internet (el desafío HTTP-01 entra
   por el puerto 80).
-- `docker/.env` con `SERVER_NAME=<dominio>` (ver `.env.example`).
+- `docker/.env` con `SERVER_NAME=<dominio>` (ver `docker/.env.example`).
 
 ## Emisión (una vez)
 

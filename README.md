@@ -121,6 +121,22 @@ La documentación técnica se encuentra en el directorio `docs`.
 - **Zabbix UI/DB:** `dashboard-update.md`
 - **NOC Agent / MCP:** `mcp-spike-fase2.md`, `noc-agent/`
 - **Seguridad:** `seguridad-secretos.md`
+- **Decisiones de arquitectura:** `adr/`
+- **Observabilidad (lab):** `docker/observability/README.md` — Loki, Grafana,
+  Alloy y receptor syslog (ADR 0001)
+- **Plan de dashboards para clientes:** `observabilidad-demo.md` — análisis,
+  catálogo de dashboards y tareas
+- **Alta de hosts y métricas:** `agregar-host.md` — procedimiento y verificaciones
+- **Bitácora técnica:** `lecciones-observabilidad.md` — síntoma, causa y solución por componente
+- **Mantenimiento:** `mantenimiento-observabilidad.md` — versiones, riesgos, backups y qué es Infinity
+- **Riesgos y alternativas:** `riesgos-y-alternativas.md` — costo de mantenimiento de cada pieza
+- **Mapas de red:** `mapas-red.md` — prompt, generación y varios mapas por cliente
+- **Clases de incidente:** `clases-de-incidente.md` — catálogo y servicios críticos (D9/D10)
+- **Servicios críticos:** `scripts/gen_servicios.py` — genera el dashboard desde `servicios*.yml`
+- **Digest (fase N):** `contrato-digest.md` + `digest.py` (armar), `notify_digest.py` (enviar) y `preguntar.py` (consultar)
+- **Evaluación del clasificador (N6):** `scripts/evaluar_clasificador.py` + `tests/fixtures/incidentes.yaml`
+- **Revisión de coherencia:** `revision-coherencia.md` + `scripts/check_all.sh`
+- **Respaldo y restauración:** `respaldo-observabilidad.md` + `scripts/backup_observability.sh`
 - **Roadmap:** `ROADMAP.md`
 
 ---
