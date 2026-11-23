@@ -1,0 +1,49 @@
+# Datasources provisionados como codigo (ADR D4).
+# UIDs fijos: los dashboards del repo los referencian, no dependen del
+# orden en que Grafana los crea.
+
+apiVersion: 1
+
+datasources:
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    jsonData:
+      maxLines: 1000
+      timeout: 60
+
+  # Zabbix es la fuente de metricas. Usuario dedicado de solo lectura,
+  # creado en el sitio; la contrasena entra por variable de entorno.
+  - name: Zabbix
+    uid: zabbix
+    type: alexanderzobnin-zabbix-datasource
+    access: proxy
+    url: http://zabbix-web:8080/api_jsonrpc.php
+    jsonData:
+      username: ${GF_ZABBIX_USER}
+      trends: true
+      trendsFrom: 7d
+      trendsRange: 4d
+      cacheTTL: 1h
+      alerting: false
+      # Sin timeout propio: el del proxy.
+    secureJsonData:
+      password: ${GF_ZABBIX_PASSWORD}
+
+  # API de Zabbix con token de solo lectura. Permite consultar problemas e
+  # items en JSON (el plugin de Zabbix no expone esas consultas por
+  # /api/ds/query) y armar tablas nativas en espanol.
+  - name: Zabbix API
+    uid: zabbix-api
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    jsonData:
+      auth_method: bearerToken
+      allowedHosts:
+        - http://zabbix-web:8080
+    secureJsonData:
+      bearerToken: ${ZBX_API_TOKEN}

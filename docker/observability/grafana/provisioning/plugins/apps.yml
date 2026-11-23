@@ -1,0 +1,14 @@
+# Apps provisionadas como codigo (ADR D4).
+# El plugin de Zabbix se instala en build; aca solo se habilita la app para
+# que registre el datasource y la UI de problemas.
+
+apiVersion: 1
+
+apps:
+  - type: alexanderzobnin-zabbix-app
+    org_id: 1
+    disabled: false
+    jsonData:
+      dbLockRetry: false
+      enableDirectDBConnection: false
+      alerting: false

@@ -1,0 +1,72 @@
+# Loki en modo single-binary con almacenamiento en filesystem.
+# Solo alcanzable desde la red interna: no publica puertos (ADR D5).
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  log_level: info
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2026-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Retencion explicita por sitio (ADR D6). Tiene que cubrir la ventana
+  # de caida que se quiere sobrevivir, igual que el buffer de rsyslog.
+  retention_period: ${LOKI_RETENTION}
+
+  # Tope de ingesta: un equipo ruidoso no puede comerse el disco del sitio.
+  ingestion_rate_mb: ${LOKI_INGESTION_RATE_MB}
+  ingestion_burst_size_mb: ${LOKI_INGESTION_BURST_MB}
+  max_streams_per_user: 5000
+  max_entries_limit_per_query: 5000
+
+  # Clave para el buffer: cuando Alloy se recupera despues de una caida
+  # empuja lineas viejas sobre streams que ya tienen lineas nuevas.
+  # Sin esto, Loki responde 400 "entry out of order".
+  #
+  # OJO: la ventana real de desorden es `ingester.max_chunk_age / 2`
+  # (1 h con el default de 2 h). Pasada esa ventana, Loki responde 400
+  # "entry too far behind" y Alloy descarta el lote: el archivo de rsyslog
+  # sirve para caidas cortas, no para drenar dias de atraso.
+  unordered_writes: true
+
+  # Limite ABSOLUTO de antiguedad (no es la ventana de drenaje: esa es
+  # ingester.max_chunk_age/2). Se deja holgado para permitir la siembra
+  # historica del lab; en un sitio se puede bajar.
+  reject_old_samples: true
+  reject_old_samples_max_age: ${LOKI_MAX_BACKLOG}
+
+ingester:
+  # Ventana de desorden = la mitad de esto (1 h con 2 h). Define cuanto
+  # atraso acepta Loki al recuperarse. Subirlo da mas margen a cambio de
+  # chunks mas grandes en memoria.
+  max_chunk_age: 2h
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  delete_request_store: filesystem

@@ -1,0 +1,156 @@
+// Colector de logs del stack (ADR 0001, D3).
+//
+// Hace dos cosas y nada mas:
+//   1. tail de los archivos diarios que escribe rsyslog
+//   2. tail de los logs de contenedor del stack
+// y empuja todo a Loki con etiquetas.
+//
+// No recibe syslog: el receptor es rsyslog. No alerta: eso es Zabbix.
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ---------------------------------------------------------------------------
+// Syslog remoto: archivos de rsyslog
+// ---------------------------------------------------------------------------
+
+// local.file_match re-evalua el glob periodicamente. Sin esto,
+// loki.source.file trata un glob sin coincidencias al arrancar como un
+// archivo literal inexistente, descarta la fuente y NO la reintenta: en un
+// despliegue nuevo Alloy quedaria ciego hasta reiniciarlo.
+local.file_match "remote_syslog" {
+  path_targets = [{
+    __path__ = "/var/log/remote/*.log",
+    job     = "syslog",
+  }]
+  sync_period = "10s"
+}
+
+loki.source.file "remote_syslog" {
+  targets    = local.file_match.remote_syslog.targets
+  forward_to = [loki.process.remote_syslog.receiver]
+}
+
+loki.process "remote_syslog" {
+  // Linea escrita por rsyslog:
+  //   ts ip hostname facility severity tag msg
+  stage.regex {
+    expression = `^(?P<ts>\S+) (?P<src_ip>\S+) (?P<host>\S+) (?P<facility>\S+) (?P<severity>\S+) (?P<syslog_tag>\S+) (?P<message>.*)$`
+  }
+
+  // Timestamp del equipo, no el de ingesta: una caida de Alloy no le
+  // cambia la hora a los logs cuando se recupera.
+  stage.timestamp {
+    source = "ts"
+    format = "RFC3339Nano"
+  }
+
+  // Cardinalidad baja o acotada. Nada de logid, msg ni la IP de origen
+  // como etiqueta: se consultan como campos.
+  // syslog_tag NO es etiqueta: en Linux puede incluir el PID
+  // (`sshd[1234]:`) y eso es alta cardinalidad. Queda en el texto de la
+  // linea, consultable como campo.
+  stage.labels {
+    values = {
+      host     = "",
+      facility = "",
+      severity = "",
+    }
+  }
+
+  // La IP de origen no va como etiqueta (seria cardinalidad innecesaria),
+  // pero se conserva como metadato estructurado para depuracion.
+  stage.structured_metadata {
+    values = { src_ip = "" }
+  }
+
+  // La linea que ve el usuario: equipo y mensaje. Sin la hora duplicada
+  // (Loki ya la muestra) ni la IP al frente.
+  stage.template {
+    source   = "line_out"
+    template = "{{ .host }} | {{ .syslog_tag }} {{ .message }}"
+  }
+
+  stage.output {
+    source = "line_out"
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Logs de contenedor del stack
+// ---------------------------------------------------------------------------
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  // No ingerir la propia capa de observabilidad: seria un lazo de
+  // realimentacion (Loki loguea, Alloy lo envia a Loki).
+  // Dos reglas: el label de compose y el nombre del contenedor. Si una
+  // falta, la otra cubre.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "loki|grafana|alloy|rsyslog|rsyslog-retention"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(zbx-loki|zbx-grafana|zbx-alloy|zbx-rsyslog|zbx-rsyslog-retention)"
+    action        = "drop"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  labels        = { site = sys.env("SITE"), job = "docker" }
+  forward_to    = [loki.write.local.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Salida
+// ---------------------------------------------------------------------------
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+
+    // Explicito, no heredado: si la cola se llena, el lector se bloquea y
+    // el atraso se acumula en el archivo de rsyslog.
+    queue_config {
+      block_on_overflow = true
+      drain_timeout     = "15s"
+    }
+  }
+
+  // WAL en disco: las entradas son durables cuando llegan a este
+  // componente, no cuando salen a la red. Cierra la ventana de perdida
+  // ante un crash sucio de Alloy. Vive bajo --storage.path.
+  wal {
+    enabled = true
+  }
+
+  external_labels = {
+    site = sys.env("SITE"),
+  }
+}

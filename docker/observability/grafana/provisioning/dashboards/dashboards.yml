@@ -1,0 +1,24 @@
+# Provider de dashboards: solo los curados del repo, montados :ro (ADR D4).
+# Nada se descarga de grafana.com; el JSON se revisa como cualquier codigo.
+#
+# Carpetas por estructura de directorios:
+#   Cliente/  -> vista simple para el cliente
+#   Tecnico/  -> vista completa para tecnicos
+# Separan audiencias en la navegacion, no por permisos: hoy ambos roles ven
+# ambas carpetas (ADR D9). Restringir Tecnico por carpeta es una opcion futura
+# por sitio, no algo que haga este provisioning.
+
+apiVersion: 1
+
+providers:
+  - name: zbx-in-docker
+    orgId: 1
+    type: file
+    # false: si un dashboard se quita del repo, provisioning lo borra.
+    # La UI no edita nada (allowUiUpdates: false).
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
